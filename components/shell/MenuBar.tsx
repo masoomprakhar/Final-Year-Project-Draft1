@@ -2,6 +2,8 @@
 
 import { rowsToCsv } from "@/lib/csv/parsePlantCsv";
 import { SAMPLE_ROWS } from "@/lib/data/samplePlantData";
+import { formatNumber } from "@/lib/format";
+import { buildStreams } from "@/lib/simulation/mockHeatExchanger";
 import { useTwin } from "@/lib/store/TwinProvider";
 import type { MenuId } from "@/lib/types";
 
@@ -32,8 +34,13 @@ export function MenuBar() {
     twin.notify("Downloaded sample_plant_data.csv.");
   }
 
-  function unavailable(name: string) {
-    twin.notify(`${name} is not part of this heat-exchanger MVP.`);
+  function showWaterProperties() {
+    const streams = buildStreams(twin.selectedRow, twin.result);
+    const feed = streams[0];
+    twin.openFlowsheet();
+    twin.notify(
+      `S1 water at ${twin.selectedRow.timestamp}: ${formatNumber(feed.temperature, 1)} °C, ${formatNumber(feed.pressure, 1)} bar, enthalpy ${formatNumber(feed.enthalpy, 1)} kJ/kg, density ${formatNumber(feed.density, 1)} kg/m³.`,
+    );
   }
 
   const items: Record<MenuId, { label: string; action: () => void }[]> = {
@@ -48,11 +55,21 @@ export function MenuBar() {
       { label: "Stop", action: twin.stopSimulation },
       { label: "Run Digital Twin", action: twin.runDigitalTwin },
     ],
-    dynamics: [{ label: "Not in this MVP", action: () => unavailable("Dynamics") }],
-    flowsheet: [{ label: "Not in this MVP", action: () => unavailable("Flowsheet editing") }],
-    thermodynamics: [
-      { label: "Not in this MVP", action: () => unavailable("Thermodynamics packages") },
+    dynamics: [
+      {
+        label: "Twin Comparison",
+        action: () => {
+          twin.setBottomTab("charts");
+          twin.setChartTab("twin");
+        },
+      },
     ],
+    flowsheet: [
+      { label: "Main Flowsheet", action: twin.openFlowsheet },
+      { label: "Heater H-1", action: () => twin.openUnit("heater") },
+      { label: "Cooler C-1", action: () => twin.openUnit("cooler") },
+    ],
+    thermodynamics: [{ label: "Water properties (S1)", action: showWaterProperties }],
     tools: [
       {
         label: "ML Analytics",
@@ -68,6 +85,8 @@ export function MenuBar() {
       { label: "Charts", action: () => twin.setBottomTab("charts") },
       { label: "Messages", action: () => twin.setBottomTab("messages") },
       { label: "Select Heat Exchanger", action: () => twin.selectObject("E-1") },
+      { label: "Select Heater", action: () => twin.openUnit("heater") },
+      { label: "Select Cooler", action: () => twin.openUnit("cooler") },
     ],
     help: [
       {

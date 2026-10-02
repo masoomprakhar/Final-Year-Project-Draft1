@@ -51,10 +51,16 @@ export type PlantRow = {
   cold_outlet_pressure_actual: number;
 };
 
+export type CalculationType =
+  | "Specify Outlet Temperature"
+  | "Specify Heat Duty"
+  | "Specify Area";
+
 export type EquipmentSpecs = {
-  calculationType: "Specify Outlet Temperature";
+  calculationType: CalculationType;
   u: number;
   area: number;
+  heatDutySpec: number;
   pressureDropHot: number;
   pressureDropCold: number;
   description: string;

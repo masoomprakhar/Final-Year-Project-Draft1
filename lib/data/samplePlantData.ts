@@ -49,6 +49,10 @@ export function createSampleRows(): PlantRow[] {
       hot_outlet_temperature_spec: hot_outlet_spec,
       pressure_drop_hot_spec: REFERENCE.pressureDropHotSpec,
       pressure_drop_cold_spec: REFERENCE.pressureDropColdSpec,
+      calculation_type: "Specify Outlet Temperature",
+      heat_duty_spec: REFERENCE.heatDuty,
+      u: REFERENCE.u,
+      area: REFERENCE.area,
     });
 
     rows.push({

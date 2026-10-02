@@ -89,11 +89,11 @@ function ChartFrame({
   );
 }
 
-function StreamLegend() {
+function StreamLegend({ showCold = true }: { showCold?: boolean }) {
   return (
     <div className="flex flex-col items-start">
       <span className="text-[#d42727]">— Hot</span>
-      <span className="text-[#1f5fd0]">— Cold</span>
+      {showCold && <span className="text-[#1f5fd0]">— Cold</span>}
     </div>
   );
 }
@@ -108,14 +108,20 @@ function axisDomain(values: number[], fallback: [number, number]): [number, numb
 }
 
 function TemperatureChart() {
-  const { streams } = useTwin();
+  const { streams, unitView } = useTwin();
   const hotIn = streams[0];
-  const hotOut = streams[1];
+  const hotOut = streams[1] ?? streams[0];
   const coldIn = streams[2];
-  const coldOut = streams[3];
+  const coldOut = streams[3] ?? streams[2];
+  const hasCold = Boolean(coldIn && coldOut);
   const data =
-    hotIn && hotOut && coldIn && coldOut
-      ? temperatureProfile(hotIn.temperature, hotOut.temperature, coldIn.temperature, coldOut.temperature)
+    hotIn && hotOut
+      ? temperatureProfile(
+          hotIn.temperature,
+          hotOut.temperature,
+          hasCold ? coldIn!.temperature : hotOut.temperature,
+          hasCold ? coldOut!.temperature : hotIn.temperature,
+        )
       : [];
   const domain = axisDomain(
     data.flatMap((point) => [point.hot, point.cold]),
@@ -123,7 +129,10 @@ function TemperatureChart() {
   );
 
   return (
-    <ChartFrame title="Temperature Profile Across Heat Exchanger" legend={<StreamLegend />}>
+    <ChartFrame
+        title={unitView ? `${unitView.name} Temperature Profile` : "Temperature Profile Across Heat Exchanger"}
+        legend={<StreamLegend showCold={hasCold} />}
+      >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 18 }}>
           <CartesianGrid stroke="#e6e6e6" />
@@ -138,7 +147,9 @@ function TemperatureChart() {
           <YAxis domain={domain} tick={{ fontSize: 11 }} width={32} />
           <Tooltip formatter={(value) => (typeof value === "number" ? value.toFixed(2) : value)} />
           <Line type="monotone" dataKey="hot" name="Hot Stream" stroke="#d42727" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
-          <Line type="monotone" dataKey="cold" name="Cold Stream" stroke="#1f5fd0" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+          {hasCold && (
+            <Line type="monotone" dataKey="cold" name="Cold Stream" stroke="#1f5fd0" strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false} />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </ChartFrame>
@@ -146,10 +157,11 @@ function TemperatureChart() {
 }
 
 function EnthalpyChart() {
-  const { streams } = useTwin();
+  const { streams, unitView } = useTwin();
   const data = enthalpyProfile(streams);
+  const hasCold = streams.length >= 3;
   return (
-    <ChartFrame title="Enthalpy Profile Across Heat Exchanger">
+    <ChartFrame title={unitView ? `${unitView.name} Enthalpy Profile` : "Enthalpy Profile Across Heat Exchanger"}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 16 }}>
           <CartesianGrid stroke="#e6e6e6" />
@@ -158,7 +170,9 @@ function EnthalpyChart() {
           <Tooltip />
           <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11 }} />
           <Line type="monotone" dataKey="hot" name="Hot Stream" stroke="#d42727" strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="cold" name="Cold Stream" stroke="#1f5fd0" strokeWidth={2} dot={false} isAnimationActive={false} />
+          {hasCold && (
+            <Line type="monotone" dataKey="cold" name="Cold Stream" stroke="#1f5fd0" strokeWidth={2} dot={false} isAnimationActive={false} />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </ChartFrame>

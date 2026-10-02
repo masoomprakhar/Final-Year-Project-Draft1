@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { StatusPill } from "@/components/StatusPill";
+import { UNIT_IDS } from "@/lib/data/unitModels";
 import { useTwin } from "@/lib/store/TwinProvider";
+import type { ObjectId } from "@/lib/types";
 
 function RibbonButton({
   label,
@@ -53,38 +55,30 @@ export function Ribbon() {
       <div className="flex h-full items-center px-1">
         <RibbonButton
           label="Add Unit"
-          onClick={() =>
-            twin.notify(
-              "The flowsheet is fixed for the E-1 heat exchanger case. Units cannot be added in this MVP.",
-            )
-          }
+          onClick={() => {
+            const index = twin.activeUnitId ? UNIT_IDS.indexOf(twin.activeUnitId) : -1;
+            twin.openUnit(UNIT_IDS[(index + 1) % UNIT_IDS.length]);
+          }}
         >
           <Box className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
         <RibbonButton
           label="Add Stream"
-          onClick={() =>
-            twin.notify(
-              "The flowsheet is fixed for the E-1 heat exchanger case. Streams cannot be added in this MVP.",
-            )
-          }
+          onClick={() => {
+            const order: ObjectId[] = ["S1", "S2", "S3", "S4"];
+            const current =
+              twin.selection.kind === "object" ? order.indexOf(twin.selection.id) : -1;
+            const next = order[(current + 1) % order.length];
+            twin.selectObject(next);
+            twin.notify(`Material stream ${next} selected.`);
+          }}
         >
           <ArrowRightLeft className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
-        <RibbonButton
-          label="Connect"
-          onClick={() =>
-            twin.notify("Connections are already drawn for S1–S4. The flowsheet is fixed in this MVP.")
-          }
-        >
+        <RibbonButton label="Connect" onClick={twin.connectActive}>
           <Spline className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
-        <RibbonButton
-          label="Auto-Layout"
-          onClick={() =>
-            twin.notify("Auto-layout is not needed. The heat exchanger case is already arranged.")
-          }
-        >
+        <RibbonButton label="Auto-Layout" onClick={twin.autoLayout}>
           <LayoutGrid className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
       </div>
@@ -123,6 +117,10 @@ export function Ribbon() {
           label="Energy Analysis"
           active={twin.propertyTab === "results" && twin.selection.kind === "object"}
           onClick={() => {
+            if (twin.activeUnitId) {
+              twin.setPropertyTab("results");
+              return;
+            }
             twin.selectObject("E-1");
             twin.setPropertyTab("results");
           }}
@@ -139,14 +137,7 @@ export function Ribbon() {
         <RibbonButton label="Data Fit" onClick={() => twin.setBottomTab("simulation")}>
           <Activity className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
-        <RibbonButton
-          label="Optimization"
-          onClick={() =>
-            twin.notify(
-              "Optimization is not in this MVP. Use Sensitivity to compare the loaded plant rows.",
-            )
-          }
-        >
+        <RibbonButton label="Optimization" onClick={twin.optimize}>
           <TrendingUp className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
       </div>

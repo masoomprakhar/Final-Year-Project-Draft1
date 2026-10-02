@@ -6,7 +6,7 @@ import { NumberField } from "@/components/NumberField";
 import { StatusPill } from "@/components/StatusPill";
 import { formatNumber, formatSigned } from "@/lib/format";
 import { useTwin } from "@/lib/store/TwinProvider";
-import type { ObjectId, PropertyTab, StreamColumn } from "@/lib/types";
+import type { EquipmentSpecs, ObjectId, PropertyTab, StreamColumn } from "@/lib/types";
 
 const OBJECTS: { id: ObjectId; label: string }[] = [
   { id: "E-1", label: "E-1 (Heat Exchanger)" },
@@ -53,14 +53,21 @@ export function PropertiesPanel() {
       <div className="border-b border-[#e6e6e6] px-2 py-2">
         <label className="mb-1 block text-[11px] text-[#555]">Object</label>
         <select
-          value={selectedId ?? ""}
+          value={twin.unitView ? `unit:${twin.unitView.id}` : (selectedId ?? "E-1")}
           onChange={(event) => {
-            if (event.target.value) twin.selectObject(event.target.value as ObjectId);
+            const value = event.target.value;
+            if (value.startsWith("unit:")) {
+              twin.openUnit(value.slice(5));
+              return;
+            }
+            twin.selectObject(value as ObjectId);
           }}
           className="h-7 w-full border border-[#c5c5c5] bg-white px-1 text-[12px] outline-none focus:border-[#2b7cd3]"
         >
-          {twin.selection.kind === "unavailable" && (
-            <option value="">{twin.selection.name}</option>
+          {twin.unitView && (
+            <option value={`unit:${twin.unitView.id}`}>
+              {twin.unitView.name} ({twin.unitView.typeLabel})
+            </option>
           )}
           {OBJECTS.map((item) => (
             <option key={item.id} value={item.id}>
@@ -86,10 +93,8 @@ export function PropertiesPanel() {
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-3 py-2 text-[12px]">
-        {twin.selection.kind === "unavailable" ? (
-          <p className="text-[#555]">
-            {twin.selection.name} is not placed on this heat-exchanger flowsheet.
-          </p>
+        {twin.unitView ? (
+          <UnitDetails />
         ) : twin.propertyTab === "general" ? (
           <General objectId={selectedId ?? "E-1"} stream={stream} />
         ) : twin.propertyTab === "specifications" ? (
@@ -142,20 +147,33 @@ function Specifications({
           <span>Calculation Type</span>
           <select
             value={twin.equipment.calculationType}
-            onChange={() =>
-              twin.notify("Specify Outlet Temperature is the only calculation type in this MVP.")
+            onChange={(event) =>
+              twin.updateEquipment({
+                calculationType: event.target.value as EquipmentSpecs["calculationType"],
+              })
             }
             className="h-[22px] w-full border border-[#c5c5c5] bg-white px-1 text-[12px]"
           >
             <option>Specify Outlet Temperature</option>
+            <option>Specify Heat Duty</option>
+            <option>Specify Area</option>
           </select>
         </div>
-        <Field label="Hot Outlet Temperature" unit="°C">
-          <NumberField
-            value={twin.selectedRow.hot_outlet_spec}
-            onCommit={(value) => twin.updateRow({ hot_outlet_spec: value })}
-          />
-        </Field>
+        {twin.equipment.calculationType === "Specify Heat Duty" ? (
+          <Field label="Heat Duty" unit="kW">
+            <NumberField
+              value={twin.equipment.heatDutySpec}
+              onCommit={(value) => twin.updateEquipment({ heatDutySpec: value })}
+            />
+          </Field>
+        ) : (
+          <Field label="Hot Outlet Temperature" unit="°C">
+            <NumberField
+              value={twin.selectedRow.hot_outlet_spec}
+              onCommit={(value) => twin.updateRow({ hot_outlet_spec: value })}
+            />
+          </Field>
+        )}
         <Field label="Cold Inlet Temperature" unit="°C">
           <NumberField
             value={twin.selectedRow.cooling_temperature}
@@ -189,7 +207,11 @@ function Specifications({
           />
         </Field>
         <p className="mt-2 text-[11px] leading-snug text-[#6b7280]">
-          U and area are stored on E-1. Mock duty follows the specified hot outlet temperature.
+          {twin.equipment.calculationType === "Specify Area"
+            ? "Duty follows U, area, and the inlet temperature difference."
+            : twin.equipment.calculationType === "Specify Heat Duty"
+              ? "Outlets follow the specified heat duty and the two flows."
+              : "Duty follows the specified hot outlet temperature and the hot flow."}
         </p>
         <CalculationResults />
       </div>
@@ -326,6 +348,52 @@ function Results({ objectId, stream }: { objectId: ObjectId; stream: StreamColum
       <Readout label="Pressure" value={`${formatNumber(stream.pressure, 1)} bar`} />
       <Readout label="Enthalpy" value={`${formatNumber(stream.enthalpy, 1)} kJ/kg`} />
       <Readout label="Density" value={`${formatNumber(stream.density, 1)} kg/m³`} />
+    </div>
+  );
+}
+
+function UnitDetails() {
+  const twin = useTwin();
+  const view = twin.unitView;
+  if (!view) return null;
+
+  if (twin.propertyTab === "general") {
+    return (
+      <div className="space-y-2">
+        <Readout label="Name" value={`${view.name} (${view.typeLabel})`} />
+        <Readout label="Flowsheet" value={view.name} />
+        <p>{view.description}</p>
+        <p className="text-[11px] text-[#6b7280]">{view.connections}</p>
+      </div>
+    );
+  }
+
+  if (twin.propertyTab === "results") {
+    return (
+      <div>
+        {view.results.map((field) => (
+          <ResultRow
+            key={field.label}
+            label={field.label}
+            value={formatNumber(field.value, field.digits)}
+            unit={field.unit}
+          />
+        ))}
+        <p className="mt-2 text-[11px] text-[#6b7280]">Dummy unit model. These numbers update when the specifications change.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {view.specs.map((field) => (
+        <Field key={`${view.id}-${field.key}`} label={field.label} unit={field.unit}>
+          <NumberField
+            value={field.value}
+            onCommit={(value) => twin.updateUnitSpec(field.key, value)}
+          />
+        </Field>
+      ))}
     </div>
   );
 }

@@ -29,51 +29,52 @@ type PaletteItem = {
   name: string;
   icon: LucideIcon;
   objectId?: ObjectId;
+  unitId?: string;
 };
 
 const STREAMS: PaletteItem[] = [
   { name: "Material Stream", icon: Droplets, objectId: "S1" },
-  { name: "Energy Stream", icon: Zap },
+  { name: "Energy Stream", icon: Zap, unitId: "energy" },
 ];
 
 const UNITS: PaletteItem[] = [
-  { name: "Mixer", icon: GitBranch },
-  { name: "Splitter", icon: GitBranch },
+  { name: "Mixer", icon: GitBranch, unitId: "mixer" },
+  { name: "Splitter", icon: GitBranch, unitId: "splitter" },
   { name: "Heat Exchanger", icon: Layers, objectId: "E-1" },
-  { name: "Reactor", icon: FlaskConical },
-  { name: "Distillation Column", icon: Cylinder },
+  { name: "Reactor", icon: FlaskConical, unitId: "reactor" },
+  { name: "Distillation Column", icon: Cylinder, unitId: "column" },
   { name: "Pump", icon: Fan, objectId: "P-1" },
-  { name: "Compressor", icon: Gauge },
-  { name: "Valve", icon: Filter },
-  { name: "Flash Drum", icon: Cylinder },
-  { name: "Separator", icon: Layers },
-  { name: "Heater", icon: Flame },
-  { name: "Cooler", icon: Snowflake },
+  { name: "Compressor", icon: Gauge, unitId: "compressor" },
+  { name: "Valve", icon: Filter, unitId: "valve" },
+  { name: "Flash Drum", icon: Cylinder, unitId: "flash" },
+  { name: "Separator", icon: Layers, unitId: "separator" },
+  { name: "Heater", icon: Flame, unitId: "heater" },
+  { name: "Cooler", icon: Snowflake, unitId: "cooler" },
 ];
 
 const EXTRA: { title: string; items: PaletteItem[] }[] = [
   {
     title: "Utilities",
     items: [
-      { name: "Cooling Water Utility", icon: Droplets },
-      { name: "Steam Utility", icon: Thermometer },
+      { name: "Cooling Water Utility", icon: Droplets, unitId: "cw-utility" },
+      { name: "Steam Utility", icon: Thermometer, unitId: "steam-utility" },
     ],
   },
   {
     title: "Reactions",
-    items: [{ name: "Reaction Set", icon: FlaskConical }],
+    items: [{ name: "Reaction Set", icon: FlaskConical, unitId: "reaction-set" }],
   },
   {
     title: "Subflowsheets",
-    items: [{ name: "Subflowsheet", icon: Box }],
+    items: [{ name: "Subflowsheet", icon: Box, unitId: "subflowsheet" }],
   },
   {
     title: "Macros",
-    items: [{ name: "Script", icon: CircleDot }],
+    items: [{ name: "Script", icon: CircleDot, unitId: "script" }],
   },
   {
     title: "Tools",
-    items: [{ name: "Spreadsheet", icon: Layers }],
+    items: [{ name: "Spreadsheet", icon: Layers, unitId: "spreadsheet" }],
   },
 ];
 
@@ -99,7 +100,7 @@ export function ObjectPalette() {
 
   function choose(item: PaletteItem) {
     if (item.name === "Pump") {
-      const next = selectedId === "P-1" ? "P-2" : "P-1";
+      const next = selectedId === "P-1" && !twin.activeUnitId ? "P-2" : "P-1";
       twin.selectObject(next);
       return;
     }
@@ -112,7 +113,9 @@ export function ObjectPalette() {
       twin.selectObject(item.objectId);
       return;
     }
-    twin.selectUnavailable(item.name);
+    if (item.unitId) {
+      twin.openUnit(item.unitId);
+    }
   }
 
   if (!open) {
@@ -155,7 +158,13 @@ export function ObjectPalette() {
             <PaletteRow
               key={item.name}
               item={item}
-              selected={item.name === "Material Stream" && (selectedId === "S1" || selectedId === "S2" || selectedId === "S3" || selectedId === "S4")}
+              selected={
+                item.unitId
+                  ? twin.activeUnitId === item.unitId
+                  : item.name === "Material Stream" &&
+                    !twin.activeUnitId &&
+                    (selectedId === "S1" || selectedId === "S2" || selectedId === "S3" || selectedId === "S4")
+              }
               onClick={() => choose(item)}
             />
           ))}
@@ -166,8 +175,11 @@ export function ObjectPalette() {
               key={item.name}
               item={item}
               selected={
-                (item.name === "Heat Exchanger" && selectedId === "E-1") ||
-                (item.name === "Pump" && (selectedId === "P-1" || selectedId === "P-2"))
+                item.unitId
+                  ? twin.activeUnitId === item.unitId
+                  : !twin.activeUnitId &&
+                    ((item.name === "Heat Exchanger" && selectedId === "E-1") ||
+                      (item.name === "Pump" && (selectedId === "P-1" || selectedId === "P-2")))
               }
               onClick={() => choose(item)}
             />
@@ -192,7 +204,12 @@ export function ObjectPalette() {
               </button>
               {expanded &&
                 group.items.map((item) => (
-                  <PaletteRow key={item.name} item={item} selected={false} onClick={() => choose(item)} />
+                  <PaletteRow
+                    key={item.name}
+                    item={item}
+                    selected={item.unitId !== undefined && twin.activeUnitId === item.unitId}
+                    onClick={() => choose(item)}
+                  />
                 ))}
             </div>
           );

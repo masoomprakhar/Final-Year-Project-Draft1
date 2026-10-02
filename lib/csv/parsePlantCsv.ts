@@ -171,6 +171,10 @@ export function parsePlantCsv(text: string): ParseResult {
       hot_outlet_temperature_spec: hotOutletSpec,
       pressure_drop_hot_spec: REFERENCE.pressureDropHotSpec,
       pressure_drop_cold_spec: REFERENCE.pressureDropColdSpec,
+      calculation_type: "Specify Outlet Temperature",
+      heat_duty_spec: REFERENCE.heatDuty,
+      u: REFERENCE.u,
+      area: REFERENCE.area,
     });
 
     if (simulated.status === "Failed") {

@@ -15,8 +15,8 @@ const PROPERTIES: { label: string; digits: number; key: keyof StreamColumn }[] =
 ];
 
 export function StreamsTable() {
-  const { streams, selection, selectObject } = useTwin();
-  const selected = selection.kind === "object" ? selection.id : null;
+  const { streams, selection, selectObject, activeUnitId } = useTwin();
+  const selected = activeUnitId ? null : selection.kind === "object" ? selection.id : null;
 
   return (
     <div className="h-full overflow-auto">
@@ -31,7 +31,13 @@ export function StreamsTable() {
                   selected === stream.id ? "bg-[#d6ebfa]" : ""
                 }`}
               >
-                <button type="button" onClick={() => selectObject(stream.id)} className="w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeUnitId) selectObject(stream.id);
+                  }}
+                  className="w-full"
+                >
                   {stream.id}
                 </button>
               </th>
@@ -44,7 +50,7 @@ export function StreamsTable() {
                 key={`${stream.id}-name`}
                 className={`whitespace-nowrap border border-[#e1e1e1] px-2 py-0.5 text-center text-[11px] font-medium ${tone(stream.id)}`}
               >
-                {stream.id === "S3" ? "Cooling Water Inlet" : stream.name}
+                {stream.name}
               </th>
             ))}
           </tr>
@@ -66,7 +72,7 @@ export function StreamsTable() {
             </tr>
           ))}
           <tr>
-            <th colSpan={5} className="border border-[#e6e6e6] bg-[#fafafa] px-2 py-0.5 text-left font-semibold">
+            <th colSpan={streams.length + 1} className="border border-[#e6e6e6] bg-[#fafafa] px-2 py-0.5 text-left font-semibold">
               Composition (mass fraction)
             </th>
           </tr>

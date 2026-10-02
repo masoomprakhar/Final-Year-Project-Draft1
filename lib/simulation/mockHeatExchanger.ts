@@ -39,6 +39,7 @@ export const DEFAULT_EQUIPMENT: EquipmentSpecs = {
   calculationType: "Specify Outlet Temperature",
   u: REFERENCE.u,
   area: REFERENCE.area,
+  heatDutySpec: REFERENCE.heatDuty,
   pressureDropHot: REFERENCE.pressureDropHotSpec,
   pressureDropCold: REFERENCE.pressureDropColdSpec,
   description: "Shell-and-tube heat exchanger. Hot feed is cooled by water.",
@@ -55,6 +56,10 @@ export type SimulationInput = {
   hot_outlet_temperature_spec: number;
   pressure_drop_hot_spec: number;
   pressure_drop_cold_spec: number;
+  calculation_type: EquipmentSpecs["calculationType"];
+  heat_duty_spec: number;
+  u: number;
+  area: number;
 };
 
 export function toSimulationInput(
@@ -72,6 +77,10 @@ export function toSimulationInput(
     hot_outlet_temperature_spec: row.hot_outlet_spec,
     pressure_drop_hot_spec: equipment.pressureDropHot,
     pressure_drop_cold_spec: equipment.pressureDropCold,
+    calculation_type: equipment.calculationType,
+    heat_duty_spec: equipment.heatDutySpec,
+    u: equipment.u,
+    area: equipment.area,
   };
 }
 
@@ -87,6 +96,10 @@ export function inputSignature(row: PlantRow, equipment: EquipmentSpecs) {
     row.hot_outlet_spec,
     equipment.pressureDropHot,
     equipment.pressureDropCold,
+    equipment.calculationType,
+    equipment.heatDutySpec,
+    equipment.u,
+    equipment.area,
   ]);
 }
 
@@ -134,6 +147,9 @@ export function runMock(input: SimulationInput): SimulationOutput {
     input.hot_outlet_temperature_spec,
     input.pressure_drop_hot_spec,
     input.pressure_drop_cold_spec,
+    input.heat_duty_spec,
+    input.u,
+    input.area,
   ];
 
   if (numbers.some((value) => !Number.isFinite(value))) {
@@ -151,21 +167,53 @@ export function runMock(input: SimulationInput): SimulationOutput {
   if (input.pressure_drop_hot_spec < 0 || input.pressure_drop_cold_spec < 0) {
     return failed("Pressure-drop specifications cannot be negative.");
   }
-  if (input.hot_outlet_temperature_spec >= input.hot_temperature) {
-    return failed(
-      "Hot outlet temperature must be below the hot inlet when the outlet is specified.",
-    );
-  }
 
-  const hotDrop = input.hot_temperature - input.hot_outlet_temperature_spec;
-  const dutyScale =
-    (input.hot_flow / REFERENCE.hotFlow) * (hotDrop / REFERENCE.hotDeltaT);
-  const heatDuty = round(REFERENCE.heatDuty * dutyScale, 1);
-  const coldRise =
-    REFERENCE.coldDeltaT *
-    (heatDuty / REFERENCE.heatDuty) *
-    (REFERENCE.coolingFlow / input.cooling_flow);
-  const coldOutlet = round(input.cooling_temperature + coldRise, 1);
+  let hotOutlet = input.hot_outlet_temperature_spec;
+  let heatDuty = 0;
+  let coldOutlet = input.cooling_temperature;
+  let hotDrop = 0;
+  let coldRise = 0;
+
+  if (input.calculation_type === "Specify Outlet Temperature") {
+    if (input.hot_outlet_temperature_spec >= input.hot_temperature) {
+      return failed(
+        "Hot outlet temperature must be below the hot inlet when the outlet is specified.",
+      );
+    }
+    hotDrop = input.hot_temperature - input.hot_outlet_temperature_spec;
+    const dutyScale = (input.hot_flow / REFERENCE.hotFlow) * (hotDrop / REFERENCE.hotDeltaT);
+    heatDuty = round(REFERENCE.heatDuty * dutyScale, 1);
+    coldRise =
+      REFERENCE.coldDeltaT *
+      (heatDuty / REFERENCE.heatDuty) *
+      (REFERENCE.coolingFlow / input.cooling_flow);
+    coldOutlet = round(input.cooling_temperature + coldRise, 1);
+    hotOutlet = round(input.hot_outlet_temperature_spec, 1);
+  } else {
+    let duty = input.heat_duty_spec;
+    if (input.calculation_type === "Specify Area") {
+      if (input.u <= 0 || input.area <= 0) {
+        return failed("U and area must be greater than zero.");
+      }
+      const driving =
+        (input.hot_temperature - input.cooling_temperature) /
+        (REFERENCE.hotTemperature - REFERENCE.coolingTemperature);
+      if (driving <= 0) {
+        return failed("Hot inlet must be warmer than the cold inlet when area is specified.");
+      }
+      duty = REFERENCE.heatDuty * (input.u / REFERENCE.u) * (input.area / REFERENCE.area) * driving;
+    }
+    if (!(duty > 0)) return failed("Heat duty must be greater than zero.");
+    hotDrop = REFERENCE.hotDeltaT * (duty / REFERENCE.heatDuty) * (REFERENCE.hotFlow / input.hot_flow);
+    coldRise =
+      REFERENCE.coldDeltaT * (duty / REFERENCE.heatDuty) * (REFERENCE.coolingFlow / input.cooling_flow);
+    hotOutlet = round(input.hot_temperature - hotDrop, 1);
+    coldOutlet = round(input.cooling_temperature + coldRise, 1);
+    heatDuty = round(duty, 1);
+    if (hotOutlet >= input.hot_temperature) {
+      return failed("That duty is too large for the hot-stream flow.");
+    }
+  }
   const hotFlowRatio = input.hot_flow / REFERENCE.hotFlow;
   const coldFlowRatio = input.cooling_flow / REFERENCE.coolingFlow;
   const pressureDropHot = round(
@@ -182,7 +230,7 @@ export function runMock(input: SimulationInput): SimulationOutput {
   );
 
   return {
-    hot_outlet_temperature: round(input.hot_outlet_temperature_spec, 1),
+    hot_outlet_temperature: hotOutlet,
     cold_outlet_temperature: coldOutlet,
     hot_outlet_pressure: round(input.hot_pressure - pressureDropHot, 1),
     cold_outlet_pressure: round(input.cooling_pressure - pressureDropCold, 1),
