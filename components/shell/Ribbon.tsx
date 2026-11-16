@@ -19,6 +19,21 @@ import { CATALOG, UNIT_TYPES } from "@/lib/flowsheet/flowsheetCatalog";
 import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { useTwin } from "@/lib/store/TwinProvider";
 
+const HINTS: Record<string, string> = {
+  "Add Unit": "Add equipment (heater, pump, mixer…) to your flowsheet",
+  "Add Stream": "Add a feed stream you can attach to a unit",
+  Connect: "Turn on, then click two units to join them with a stream",
+  "Auto-Layout": "Tidy the flowsheet left to right",
+  "Run Simulation": "Calculate the flowsheet or plant case (Ctrl+Enter)",
+  Stop: "Stop the running simulation",
+  Results: "Open the results table",
+  "Stream Table": "Open the stream conditions table",
+  "Energy Analysis": "Heat duties and energy balance",
+  Sensitivity: "How results change when one input changes",
+  "Data Fit": "Compare simulation with plant data",
+  Optimization: "Pick the plant case that best matches the model",
+};
+
 function RibbonButton({
   label,
   active,
@@ -35,7 +50,7 @@ function RibbonButton({
   return (
     <button
       type="button"
-      title={label}
+      title={HINTS[label] ? `${label}: ${HINTS[label]}` : label}
       onClick={onClick}
       className={`flex h-[68px] ${width} flex-col items-center justify-center gap-1 px-1 text-[11px] leading-[1.15] text-[#243042] hover:bg-[#e7f2fb] ${
         active ? (label === "Run Simulation" ? "bg-[#d6ebfa] ribbon-active" : "bg-[#d6ebfa]") : ""

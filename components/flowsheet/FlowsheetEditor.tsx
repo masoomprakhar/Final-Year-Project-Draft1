@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { CATALOG } from "@/lib/flowsheet/flowsheetCatalog";
+import { useEffect, useRef, useState } from "react";
+import { CATALOG, UNIT_TYPES } from "@/lib/flowsheet/flowsheetCatalog";
 import { UNIT_HEIGHT, UNIT_WIDTH } from "@/lib/flowsheet/flowsheetLayout";
 import type { FlowDoc, FlowStream, FlowUnit } from "@/lib/flowsheet/flowsheetTypes";
 import { formatNumber } from "@/lib/format";
@@ -37,6 +37,32 @@ export function FlowsheetEditor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef<{ id: string; dx: number; dy: number; moved: boolean } | null>(null);
   const [, force] = useState(0);
+  const [menu, setMenu] = useState(false);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((event.key === "Delete" || event.key === "Backspace") && fs.selection) {
+        event.preventDefault();
+        fs.deleteSelected();
+      } else if (event.key === "Escape" && fs.connectMode) fs.toggleConnect();
+      else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        void fs.run();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const hint = fs.connectMode
+    ? fs.pending ? "Now click the unit (or stream) to join it to." : "Connect is on: click a unit or stream to start. Esc to stop."
+    : doc.units.length === 0 ? "Start here: choose “Add unit” and pick a heater, pump, mixer…"
+    : doc.streams.length === 0 ? "Next: click Connect, then click one unit and then another to join them with a stream."
+    : !fs.solution ? "Ready: press Run (Ctrl+Enter) to calculate. Drag units to rearrange; click a unit or stream to edit it on the right."
+    : fs.solution.ok ? "Solved. Click any unit or stream to see its results on the right." : "Not solved: see the problems listed under Flowsheet on the right.";
+  const toolBtn = "h-7 border border-[#c5c5c5] bg-white px-2.5 text-[12px] hover:bg-[#e7f2fb]";
 
   const width = Math.max(1000, ...doc.units.map((u) => u.x + UNIT_WIDTH / 2 + STUB + 60));
   const height = Math.max(460, ...doc.units.map((u) => u.y + UNIT_HEIGHT / 2 + 80));
@@ -54,7 +80,29 @@ export function FlowsheetEditor() {
   const isSelected = (kind: "unit" | "stream", id: string) => fs.selection?.kind === kind && fs.selection.id === id;
 
   return (
-    <div className="relative h-full" data-flow={fs.solution ? (fs.solution.ok ? "done" : "idle") : "idle"}>
+    <div className="relative flex h-full flex-col" data-flow={fs.solution ? (fs.solution.ok ? "done" : "idle") : "idle"}>
+      <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[#e1e1e1] bg-[#fafafa] px-2 py-1.5">
+        <div className="relative">
+          <button type="button" className={`${toolBtn} font-semibold text-[#1f4e79]`} onClick={() => setMenu(!menu)}>＋ Add unit ▾</button>
+          {menu && (
+            <div className="absolute left-0 top-8 z-20 w-48 border border-[#c9c9c9] bg-white py-1 shadow-md">
+              {UNIT_TYPES.map((type) => (
+                <button key={type} type="button" onClick={() => { fs.addUnit(type); setMenu(false); }} className="block w-full px-3 py-1 text-left text-[12px] hover:bg-[#e7f2fb]">
+                  {CATALOG[type].label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button type="button" className={toolBtn} onClick={fs.addStream}>＋ Add stream</button>
+        <button type="button" className={`${toolBtn} ${fs.connectMode ? "!border-[#e07b00] !bg-[#fff1dc] font-semibold" : ""}`} onClick={fs.toggleConnect}>
+          {fs.connectMode ? "● Connecting… (Esc)" : "⇄ Connect"}
+        </button>
+        <button type="button" className={toolBtn} onClick={fs.autoLayout}>▦ Tidy layout</button>
+        <button type="button" className={`${toolBtn} text-[#b42318] disabled:opacity-40`} disabled={!fs.selection} onClick={fs.deleteSelected}>🗑 Delete selected</button>
+        <button type="button" className="ml-auto h-7 border border-[#1f8a3b] bg-[#1f8a3b] px-3 text-[12px] font-semibold text-white hover:bg-[#177030]" onClick={() => void fs.run()}>▶ Run</button>
+      </div>
+      <p className="shrink-0 border-b border-[#e8e8e8] bg-[#f4f9ff] px-3 py-1 text-[12px] text-[#1f4e79]">💡 {hint}</p>
       {doc.units.length === 0 && doc.streams.length === 0 && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center text-[13px] text-[#555]">
           <div>
@@ -66,7 +114,7 @@ export function FlowsheetEditor() {
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="h-full w-full select-none"
+        className="min-h-0 w-full flex-1 select-none"
         role="img"
         aria-label={`${doc.name} flowsheet`}
         onPointerDown={(event) => {
@@ -194,11 +242,6 @@ export function FlowsheetEditor() {
           );
         })}
       </svg>
-      {fs.connectMode && (
-        <div className="absolute bottom-2 left-2 rounded border border-[#e07b00] bg-[#fff6e8] px-2 py-1 text-[12px]">
-          {fs.pending ? "Now click the unit or stream to join." : "Connect: click a unit or stream to start."}
-        </div>
-      )}
     </div>
   );
 }
