@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { checkDwsim, DWSIM_URL, type DwsimHealth } from "@/lib/dwsim/client";
+import { useState } from "react";
+import { DWSIM_URL, testDwsimSolve, type DwsimTest } from "@/lib/dwsim/client";
+import { useDwsimHealth } from "@/lib/dwsim/useDwsimHealth";
 import { DWSIM_COVERAGE, DWSIM_NOT_COVERED } from "@/lib/dwsim/coverage";
 
 export function DwsimPanel() {
-  const [health, setHealth] = useState<DwsimHealth>({ state: "unconfigured" });
-  useEffect(() => {
-    let live = true;
-    void checkDwsim().then((h) => live && setHealth(h));
-    return () => {
-      live = false;
-    };
-  }, []);
-
+  const { health, checkedAt, refresh } = useDwsimHealth();
+  const [test, setTest] = useState<DwsimTest | null>(null);
+  const [testing, setTesting] = useState(false);
+  async function runTest() {
+    setTesting(true);
+    setTest(await testDwsimSolve());
+    setTesting(false);
+  }
   const badge =
     health.state === "online"
       ? health.realDwsim
@@ -30,7 +30,17 @@ export function DwsimPanel() {
         <h2 className="text-[14px] font-semibold text-[#3d2a9a]">DWSIM coverage</h2>
         <span className={`px-2 py-0.5 font-semibold ${badge.cls}`}>{badge.text}</span>
         {DWSIM_URL && <code className="text-[#555]">{DWSIM_URL}</code>}
+        {checkedAt && <span className="text-[#666]">checked {checkedAt.toLocaleTimeString()} · auto-refreshes</span>}
+        <button type="button" onClick={() => void refresh()} className="h-6 border border-[#6b4fd8] bg-white px-2 font-semibold text-[#3d2a9a] hover:bg-[#ece7ff]">Refresh</button>
+        <button type="button" disabled={!DWSIM_URL || testing} onClick={() => void runTest()} className="h-6 border border-[#6b4fd8] bg-[#6b4fd8] px-2 font-semibold text-white hover:bg-[#573fb8] disabled:opacity-40">{testing ? "Solving…" : "▶ Test live solve"}</button>
       </div>
+      {test && (
+        <p className={`mb-2 border-l-4 px-2 py-1 ${test.ok ? "border-[#1f8a3b] bg-[#e9f7ee]" : "border-[#b42318] bg-[#fdecea]"}`}>
+          {test.ok
+            ? `Reference case solved in ${test.ms} ms: hot out ${test.hotOut} °C, cold out ${test.coldOut} °C, duty ${test.duty} kW (expected 28.4 / 33.6 / 125.3).`
+            : `Test failed: ${test.error}`}
+        </p>
+      )}
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
         <div className="flex flex-wrap gap-1.5">
           {DWSIM_COVERAGE.map((c) => (

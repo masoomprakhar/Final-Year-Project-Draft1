@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { DwsimBadge } from "@/components/DwsimBadge";
 import { useTwin } from "@/lib/store/TwinProvider";
 
 const LINKS = [
@@ -36,11 +37,13 @@ export function PageFrame({ title, intro, children, fill = true }: { title: stri
             {link.label}
           </Link>
         ))}
+        <span className="ml-auto" />
+        <DwsimBadge />
         {backendEnabled && (
           <button
             type="button"
             onClick={() => (userEmail ? void signOut() : setAuthOpen(true))}
-            className="ml-auto h-7 border border-[#bbb] bg-white px-2 text-[12px] hover:bg-[#e7f1fb]"
+            className="h-7 border border-[#bbb] bg-white px-2 text-[12px] hover:bg-[#e7f1fb]"
           >
             {userEmail ? `${userEmail} · Sign out` : "Sign in"}
           </button>

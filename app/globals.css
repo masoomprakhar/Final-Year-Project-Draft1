@@ -109,3 +109,6 @@ button:not(:disabled):active {
 
 .toast { animation: toastin 0.3s ease-out; }
 @keyframes toastin { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+
+.live-dot { animation: livedot 1.6s ease-in-out infinite; }
+@keyframes livedot { 0%, 100% { box-shadow: 0 0 0 0 rgba(31, 138, 59, 0.55); } 50% { box-shadow: 0 0 0 5px rgba(31, 138, 59, 0); } }

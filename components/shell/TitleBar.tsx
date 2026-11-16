@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DwsimBadge } from "@/components/DwsimBadge";
 import { PROJECT_TITLE } from "@/lib/project";
 import { useTwin } from "@/lib/store/TwinProvider";
 
@@ -24,6 +25,7 @@ export function TitleBar() {
           ))}
         </nav>
       </div>
+      <DwsimBadge />
       {backendEnabled && (
         <button
           type="button"
