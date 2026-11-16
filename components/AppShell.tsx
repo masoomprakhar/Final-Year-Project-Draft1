@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { BottomPanel } from "@/components/bottom/BottomPanel";
-import { AuthDialog } from "@/components/dialogs/AuthDialog";
 import { UploadDialog } from "@/components/dialogs/UploadDialog";
 import { FlowsheetCanvas } from "@/components/flowsheet/FlowsheetCanvas";
 import { ObjectPalette } from "@/components/palette/ObjectPalette";
@@ -11,8 +10,8 @@ import { PropertiesPanel } from "@/components/properties/PropertiesPanel";
 import { MenuBar } from "@/components/shell/MenuBar";
 import { Ribbon } from "@/components/shell/Ribbon";
 import { TitleBar } from "@/components/shell/TitleBar";
-import { FlowsheetProvider, useFlowsheets } from "@/lib/store/FlowsheetProvider";
-import { TwinProvider, useTwin } from "@/lib/store/TwinProvider";
+import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
+import { useTwin } from "@/lib/store/TwinProvider";
 
 function Workspace() {
   const { setMenu } = useTwin();
@@ -51,18 +50,11 @@ function Workspace() {
           {active ? <FlowsheetProperties /> : <PropertiesPanel />}
         </div>
         <UploadDialog />
-        <AuthDialog />
       </div>
     </div>
   );
 }
 
 export function AppShell() {
-  return (
-    <TwinProvider>
-      <FlowsheetProvider>
-        <Workspace />
-      </FlowsheetProvider>
-    </TwinProvider>
-  );
+  return <Workspace />;
 }

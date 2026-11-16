@@ -1,0 +1,49 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { useTwin } from "@/lib/store/TwinProvider";
+
+const LINKS = [
+  { href: "/", label: "Workbench" },
+  { href: "/datasets", label: "Datasets" },
+  { href: "/runs", label: "Runs" },
+  { href: "/monitoring", label: "Monitoring" },
+  { href: "/models", label: "ML Models" },
+];
+
+export function PageFrame({ title, intro, children }: { title: string; intro: string; children: ReactNode }) {
+  const pathname = usePathname();
+  const { backendEnabled, userEmail, setAuthOpen, signOut } = useTwin();
+  return (
+    <div className="flex h-full flex-col bg-[#f3f3f3] text-[#1d1d1d]">
+      <header className="flex h-10 shrink-0 items-center gap-1 border-b border-[#d0d0d0] bg-white px-3 text-[13px]">
+        <span className="mr-3 grid h-5 w-5 place-items-center bg-[#1f4e79] text-[10px] font-bold text-white">S</span>
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`px-3 py-1 ${pathname === link.href ? "bg-[#d6ebfa] font-semibold text-[#1f4e79]" : "hover:bg-[#e7f2fb]"}`}
+          >
+            {link.label}
+          </Link>
+        ))}
+        {backendEnabled && (
+          <button
+            type="button"
+            onClick={() => (userEmail ? void signOut() : setAuthOpen(true))}
+            className="ml-auto h-7 border border-[#bbb] bg-white px-2 text-[12px] hover:bg-[#e7f1fb]"
+          >
+            {userEmail ? `${userEmail} · Sign out` : "Sign in"}
+          </button>
+        )}
+      </header>
+      <main className="min-h-0 flex-1 overflow-auto p-4">
+        <h1 className="text-[18px] font-semibold">{title}</h1>
+        <p className="mb-3 text-[13px] text-[#444]">{intro}</p>
+        <div className="h-[calc(100%-4rem)] min-h-[360px] border border-[#d0d0d0] bg-white">{children}</div>
+      </main>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PROJECT_TITLE } from "@/lib/project";
 import { useTwin } from "@/lib/store/TwinProvider";
 
@@ -15,6 +16,13 @@ export function TitleBar() {
         <span className="truncate" title={PROJECT_TITLE}>
           {PROJECT_TITLE}
         </span>
+        <nav className="ml-3 flex gap-1 text-[11px]">
+          {[["/datasets", "Datasets"], ["/runs", "Runs"], ["/monitoring", "Monitoring"], ["/models", "ML Models"]].map(([href, label]) => (
+            <Link key={href} href={href} className="border border-transparent px-2 py-0.5 hover:border-[#bbb] hover:bg-white">
+              {label}
+            </Link>
+          ))}
+        </nav>
       </div>
       {backendEnabled && (
         <button

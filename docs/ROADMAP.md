@@ -29,3 +29,14 @@ Audit of the repo plus the Supabase backend added on 2026-11-16.
 6. **Multi-page structure.** The app is one screen. Separate pages (datasets, runs, monitoring) would make the Supabase data easier to browse.
 7. **Hardening before real users.** Enable leaked-password protection in Supabase Auth, add per-user rate limits on `twin-api`, add tests for the Edge Function handlers, add CI that runs `sync:edge` and fails on drift.
 8. **Row editing persistence.** Edits made to a row in the Properties panel are sent with each run but the stored `plant_data` row is not updated.
+
+
+## Status after Steps 2 and 3
+
+Done: editable flowsheets (units, streams, connections, auto-layout, server-recorded runs), a shared
+sequential-modular solver (recycle loops are reported, not solved), ML model registry with a demo
+model and an HTTP swap-in, Datasets/Runs/Monitoring/ML Models pages, database rate limits, ownership-checked
+RLS, CI, and `docs/DEPLOY.md`.
+
+Still open: recycle-loop convergence, real thermodynamics (DWSIM service, see `DWSIM_INTEGRATION.md`),
+a trained ML model behind `ML_API_URL`, dynamic simulation, and end-to-end browser tests.

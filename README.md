@@ -65,3 +65,11 @@ Keep the UI. Swap the client modules when the API exists:
 | `lib/store/TwinProvider.tsx` | Calls to those APIs, with the same screen state |
 
 `runMock` already returns `mode: "mock"` plus the outlet temperatures, pressures, heat duty, LMTD, Reynolds numbers, and pressure drops. A later solver can return that same object.
+
+
+## Flowsheets, ML models and deployment
+
+- Click **+** in the tab row for an editable flowsheet. Add units from the palette or ribbon, use **Connect** to link them, **Auto-Layout**, then **Run Simulation**.
+- `/datasets`, `/runs`, `/monitoring`, `/models` are separate pages. Register your trained model on `/models` (contract in `lib/ml/registry.ts`).
+- Checks: `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build` (run by CI).
+- Deploy steps: `docs/DEPLOY.md`.

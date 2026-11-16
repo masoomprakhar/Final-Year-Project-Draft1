@@ -39,7 +39,28 @@ export async function handler(req: Request): Promise<Response> {
 
   const plantRow = { ...row, id: `plant-${row.timestamp}` } as unknown as PlantRow;
   const output = result.raw as SimulationOutput;
-  const prediction = predictFromOutput(plantRow, output);
+  // Swap point: set ML_API_URL (an https endpoint that takes {row, expected} and returns the three
+  // predicted values) to score with a real model. Any failure falls back to the demo model.
+  let prediction = predictFromOutput(plantRow, output);
+  let modelName = "demo-mock-model";
+  const mlUrl = Deno.env.get("ML_API_URL");
+  if (mlUrl) {
+    try {
+      const res = await fetch(mlUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ row: plantRow, expected: output }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const body = await res.json();
+      if (res.ok && [body.hot_outlet_temperature, body.cold_outlet_temperature, body.heat_duty].every(num)) {
+        prediction = body;
+        modelName = Deno.env.get("ML_MODEL_NAME") ?? "external-model";
+      }
+    } catch {
+      /* keep the demo prediction */
+    }
+  }
   const anomalies = buildAnomalies([plantRow], { [plantRow.id]: output }, { [plantRow.id]: prediction });
   const flagged = anomalies.filter((a) => a.status !== "NORMAL");
   const recordedAt = toTimestamptz(row.timestamp) ?? run.recorded_at;
@@ -48,6 +69,8 @@ export async function handler(req: Request): Promise<Response> {
     {
       owner_id: userId,
       run_id: run.id,
+      model_name: modelName,
+      is_demo: modelName === "demo-mock-model",
       hot_outlet_temperature: prediction.hot_outlet_temperature,
       cold_outlet_temperature: prediction.cold_outlet_temperature,
       heat_duty: prediction.heat_duty,
