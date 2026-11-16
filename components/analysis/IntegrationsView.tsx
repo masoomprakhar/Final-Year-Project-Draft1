@@ -41,7 +41,7 @@ export function IntegrationsView() {
               <td className="border border-[#eee] px-2 py-1"><button type="button" disabled={!backendEnabled || !userEmail} onClick={() => void check(r.name, r.body)} className="text-[#1f4e79] underline disabled:text-[#999] disabled:no-underline">Check</button></td>
             </tr>
           ))}
-          <tr><td className="border border-[#eee] px-2 py-1 font-semibold">DWSIM service</td><td className="border border-[#eee] px-2 py-1">Rigorous unit operations</td><td className="border border-[#eee] px-2 py-1" colSpan={2}>Planned. Set <code>DWSIM_API_URL</code> on twin-api (docs/DWSIM_INTEGRATION.md).</td></tr>
+          <tr><td className="border border-[#eee] px-2 py-1 font-semibold">DWSIM service</td><td className="border border-[#eee] px-2 py-1">Rigorous unit operations</td><td className="border border-[#eee] px-2 py-1" colSpan={2}>Service in <code>dwsim-service/</code> (stub engine until DWSIM is installed). Browser checks use <code>NEXT_PUBLIC_DWSIM_API_URL</code>; the Edge Functions use <code>DWSIM_API_URL</code>. See the Dashboard for coverage.</td></tr>
           <tr><td className="border border-[#eee] px-2 py-1 font-semibold">ML model</td><td className="border border-[#eee] px-2 py-1">Trained predictor</td><td className="border border-[#eee] px-2 py-1" colSpan={2}>Demo model active. Register yours on the ML Models page or set <code>ML_API_URL</code>.</td></tr>
         </tbody>
       </table>

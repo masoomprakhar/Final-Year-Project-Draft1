@@ -28,7 +28,8 @@ export const FEATURES: Feature[] = [
   { area: "Analysis", name: "Reports and export", status: "Live", route: "/reports", where: "app/(app)/reports", note: "CSV download and print to PDF." },
   { area: "Platform", name: "Integrations and health checks", status: "Live", route: "/integrations", where: "app/(app)/integrations", note: "Pings the deployed Edge Functions." },
   { area: "Platform", name: "Rate limits, CI, Vercel deploy guide", status: "Live", where: "migration 0004, .github, docs/DEPLOY.md", note: "" },
-  { area: "Engines", name: "DWSIM solver service", status: "Planned", route: "/integrations", where: "docs/DWSIM_INTEGRATION.md", note: "Set DWSIM_API_URL on twin-api once the service exists." },
+  { area: "Engines", name: "DWSIM API service (stub engine)", status: "Mock", route: "/dashboard", where: "dwsim-service/", note: "FastAPI contract + flowsheet solve; the stub mirrors mock physics." },
+  { area: "Engines", name: "Real DWSIM calculations", status: "Planned", route: "/dashboard", where: "dwsim-service/app/engines.py (DwsimEngine)", note: "Written, untested against a real DWSIM install." },
   { area: "Engines", name: "Recycle-loop convergence", status: "Planned", where: "lib/flowsheet/flowsheetSolver.ts", note: "Currently reported as an error." },
   { area: "Engines", name: "Trained ML model", status: "Planned", route: "/models", where: "ML_API_URL", note: "You supply the model." },
 ];

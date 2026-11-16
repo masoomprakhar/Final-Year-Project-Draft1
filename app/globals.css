@@ -103,3 +103,6 @@ button:not(:disabled):active {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
+
+.dwsim-glow { animation: dwsimglow 3s ease-in-out infinite; }
+@keyframes dwsimglow { 50% { box-shadow: 0 0 14px 2px rgba(107, 79, 216, 0.35); } }

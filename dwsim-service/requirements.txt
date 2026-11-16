@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+# Only for DWSIM_ENGINE=dwsim (see README):
+# pythonnet>=3.0
+# Tests:
+# httpx pytest

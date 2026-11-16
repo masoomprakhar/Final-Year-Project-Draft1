@@ -21,6 +21,7 @@ Generated from `lib/featureMap.ts` (`npm run docs:map`). **Live** = real behavio
 | Analysis | Reports and export | Live | /reports | `app/(app)/reports` | CSV download and print to PDF. |
 | Platform | Integrations and health checks | Live | /integrations | `app/(app)/integrations` | Pings the deployed Edge Functions. |
 | Platform | Rate limits, CI, Vercel deploy guide | Live | — | `migration 0004, .github, docs/DEPLOY.md` |  |
-| Engines | DWSIM solver service | Planned | /integrations | `docs/DWSIM_INTEGRATION.md` | Set DWSIM_API_URL on twin-api once the service exists. |
+| Engines | DWSIM API service (stub engine) | Mock | /dashboard | `dwsim-service/` | FastAPI contract + flowsheet solve; the stub mirrors mock physics. |
+| Engines | Real DWSIM calculations | Planned | /dashboard | `dwsim-service/app/engines.py (DwsimEngine)` | Written, untested against a real DWSIM install. |
 | Engines | Recycle-loop convergence | Planned | — | `lib/flowsheet/flowsheetSolver.ts` | Currently reported as an error. |
 | Engines | Trained ML model | Planned | /models | `ML_API_URL` | You supply the model. |

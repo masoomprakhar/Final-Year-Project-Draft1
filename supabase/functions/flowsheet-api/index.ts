@@ -53,11 +53,32 @@ Deno.serve(async (req) => {
     .single();
   if (runError) return json({ error: runError.message }, 500);
 
-  const solution = solveFlowsheet(units, streams);
+  // With DWSIM_API_URL set the whole flowsheet is solved by the DWSIM service; otherwise locally.
+  const dwsimUrl = Deno.env.get("DWSIM_API_URL");
+  let engine = "mock";
+  let solution = solveFlowsheet(units, streams);
+  if (dwsimUrl) {
+    try {
+      const token = Deno.env.get("DWSIM_API_TOKEN");
+      const res = await fetch(`${dwsimUrl.replace(/\/$/, "")}/solve/flowsheet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ units, streams }),
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (!res.ok) throw new Error(`DWSIM service answered ${res.status}.`);
+      solution = await res.json();
+      engine = "dwsim";
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "DWSIM service error.";
+      solution = { ...solution, ok: false, errors: [`DWSIM service failed: ${message}`, ...solution.errors] };
+    }
+  }
   const { error: resultError } = await db.from("simulation_results").insert({
     owner_id: userId, run_id: run.id, raw: solution,
   });
   await db.from("simulation_runs").update({
+    engine,
     status: solution.ok && !resultError ? "converged" : "failed",
     error_message: solution.ok ? (resultError?.message ?? null) : solution.errors.join(" "),
     finished_at: new Date().toISOString(),

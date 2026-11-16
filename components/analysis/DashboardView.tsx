@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DwsimPanel } from "@/components/analysis/DwsimPanel";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatNumber } from "@/lib/format";
 import { useTwin } from "@/lib/store/TwinProvider";
@@ -23,6 +24,7 @@ export function DashboardView() {
   ];
   return (
     <div className="space-y-4 p-4 text-[12px]">
+      <DwsimPanel />
       <div className="grid grid-cols-5 gap-3">
         {tiles.map(([label, value]) => (
           <div key={label} className="border border-[#e1e1e1] px-3 py-2"><div className="text-[11px] text-[#555]">{label}</div><div className="text-[20px] font-semibold">{value}</div></div>

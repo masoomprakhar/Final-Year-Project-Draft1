@@ -65,3 +65,12 @@ dwsim.org/api_help when the service is written; this table maps meaning, not cod
 3. Put the service URL and token in Edge Function secrets and redeploy `twin-api`.
 4. Run the 24 sample rows through both engines and compare before switching the default.
 5. Keep the mock engine as the fallback for local development and tests.
+
+
+## Status: service built (stub engine)
+
+`dwsim-service/` now implements the contract above plus `/solve/unit`, `/solve/flowsheet` and `/health`. The default
+engine is a stub that mirrors the mock physics so the whole path can be tested; the DWSIM engine is written but
+**not yet verified against a real DWSIM install**. `twin-api` (exchanger) and `flowsheet-api` (whole flowsheets)
+forward to it when `DWSIM_API_URL` is set. The Dashboard shows which features DWSIM covers and whether the service is
+reachable and real. Coverage list: `lib/dwsim/coverage.ts`.
