@@ -65,7 +65,6 @@ export function FlowsheetProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<FlowSelection>(null);
   const [connectMode, setConnectMode] = useState(false);
   const [pending, setPending] = useState<FlowSelection>(null);
-  const [solutions, setSolutions] = useState<Record<string, FlowsheetSolution>>({});
   const [saving, setSaving] = useState(false);
 
   const docsRef = useRef(docs);
@@ -76,7 +75,11 @@ export function FlowsheetProvider({ children }: { children: ReactNode }) {
   userRef.current = userId;
 
   const active = docs.find((d) => d.id === activeId) ?? null;
-  const solution = activeId ? (solutions[activeId] ?? null) : null;
+  // Live: solved on every edit (the solver is instant), so values and streams update as you change them.
+  const solution = useMemo<FlowsheetSolution | null>(
+    () => (active && active.units.length > 0 ? solveFlowsheet(active.units, active.streams) : null),
+    [active],
+  );
 
   const flush = useCallback(async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -101,12 +104,6 @@ export function FlowsheetProvider({ children }: { children: ReactNode }) {
   const edit = useCallback(
     (id: string, change: (doc: FlowDoc) => FlowDoc) => {
       setDocs((current) => current.map((d) => (d.id === id ? change(d) : d)));
-      setSolutions((current) => {
-        if (!current[id]) return current;
-        const { [id]: _stale, ...rest } = current;
-        void _stale;
-        return rest;
-      });
       dirty.current.add(id);
       if (userRef.current) {
         if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -391,12 +388,10 @@ export function FlowsheetProvider({ children }: { children: ReactNode }) {
     if (!active) return notify("Add units to a flowsheet before running.", "error");
     if (active.units.length === 0) return notify("The flowsheet has no units.", "error");
     const local = solveFlowsheet(active.units, active.streams);
-    setSolutions((current) => ({ ...current, [active.id]: local }));
     notify(
       local.ok ? `${active.name} solved (${local.order.length} units).` : `${active.name}: ${local.errors[0]}`,
       local.ok ? "success" : "error",
     );
-    for (const warning of local.warnings) notify(warning, "warning");
     if (!userRef.current) return;
 
     await flush();

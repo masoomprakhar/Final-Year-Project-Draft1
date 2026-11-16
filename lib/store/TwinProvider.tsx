@@ -417,12 +417,22 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateRow = useCallback((patch: Partial<PlantRow>) => {
-    setState((current) => ({
-      ...current,
-      rows: current.rows.map((row) =>
-        row.id === current.selectedId ? { ...row, ...patch } : row,
-      ),
-    }));
+    // Live: recalculate the edited row immediately (the mock solve is instant), no Run needed.
+    setState((current) => {
+      const rows = current.rows.map((row) => (row.id === current.selectedId ? { ...row, ...patch } : row));
+      const edited = rows.find((row) => row.id === current.selectedId);
+      if (!edited) return { ...current, rows };
+      const output = runMock(toSimulationInput(edited, current.equipment));
+      return {
+        ...current,
+        rows,
+        results: { ...current.results, [edited.id]: output },
+        predictions: { ...current.predictions, [edited.id]: predictFromOutput(edited, output) },
+        signatures: { ...current.signatures, [edited.id]: inputSignature(edited, current.equipment) },
+        status: output.status === "Failed" ? "Failed" : "Converged",
+        errorMessage: output.status === "Failed" ? output.error_message : "",
+      };
+    });
 
     // Save the edited row to Postgres once typing pauses.
     if (!userIdRef.current || !datasetIdRef.current) return;
@@ -444,10 +454,18 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateEquipment = useCallback((patch: Partial<EquipmentSpecs>) => {
-    setState((current) => ({
-      ...current,
-      equipment: { ...current.equipment, ...patch },
-    }));
+    setState((current) => {
+      const equipment = { ...current.equipment, ...patch };
+      const solved = solveAll(current.rows, equipment);
+      const own = solved.results[current.selectedId];
+      return {
+        ...current,
+        equipment,
+        ...solved,
+        status: own?.status === "Failed" ? "Failed" : "Converged",
+        errorMessage: own?.status === "Failed" ? own.error_message : "",
+      };
+    });
   }, []);
 
   const finishRun = useCallback(

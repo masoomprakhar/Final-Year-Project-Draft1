@@ -56,12 +56,6 @@ export function FlowsheetEditor() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const hint = fs.connectMode
-    ? fs.pending ? "Now click the unit (or stream) to join it to." : "Connect is on: click a unit or stream to start. Esc to stop."
-    : doc.units.length === 0 ? "Start here: choose “Add unit” and pick a heater, pump, mixer…"
-    : doc.streams.length === 0 ? "Next: click Connect, then click one unit and then another to join them with a stream."
-    : !fs.solution ? "Ready: press Run (Ctrl+Enter) to calculate. Drag units to rearrange; click a unit or stream to edit it on the right."
-    : fs.solution.ok ? "Solved. Click any unit or stream to see its results on the right." : "Not solved: see the problems listed under Flowsheet on the right.";
   const toolBtn = "h-7 border border-[#c5c5c5] bg-white px-2.5 text-[12px] hover:bg-[#e7f2fb]";
 
   const width = Math.max(1000, ...doc.units.map((u) => u.x + UNIT_WIDTH / 2 + STUB + 60));
@@ -100,9 +94,9 @@ export function FlowsheetEditor() {
         </button>
         <button type="button" className={toolBtn} onClick={fs.autoLayout}>▦ Tidy layout</button>
         <button type="button" className={`${toolBtn} text-[#b42318] disabled:opacity-40`} disabled={!fs.selection} onClick={fs.deleteSelected}>🗑 Delete selected</button>
-        <button type="button" className="ml-auto h-7 border border-[#1f8a3b] bg-[#1f8a3b] px-3 text-[12px] font-semibold text-white hover:bg-[#177030]" onClick={() => void fs.run()}>▶ Run</button>
+        <span className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold text-[#1f8a3b]" title="Results recalculate every time you change something"><span className="live-dot h-2 w-2 rounded-full bg-[#1f8a3b]" />Live</span>
+        <button type="button" className="h-7 border border-[#1f8a3b] bg-[#1f8a3b] px-3 text-[12px] font-semibold text-white hover:bg-[#177030]" onClick={() => void fs.run()}>▶ Save run</button>
       </div>
-      <p className="shrink-0 border-b border-[#e8e8e8] bg-[#f4f9ff] px-3 py-1 text-[12px] text-[#1f4e79]">💡 {hint}</p>
       {doc.units.length === 0 && doc.streams.length === 0 && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center text-[13px] text-[#555]">
           <div>

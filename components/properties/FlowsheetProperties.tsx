@@ -5,8 +5,21 @@ import { CATALOG } from "@/lib/flowsheet/flowsheetCatalog";
 import { formatNumber } from "@/lib/format";
 import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 
+/** Number box plus a slider; both change the value live. */
+function Live({ value, base, onChange, min, max }: { value: number; base?: number; onChange: (v: number) => void; min?: number; max?: number }) {
+  const lo = min ?? (base ? Math.min(0, base * 0.25) + (base > 0 ? base * 0.25 : 0) : 0);
+  const hi = max ?? (base ? base * 2.5 : 10);
+  const step = (hi - lo) / 200;
+  return (
+    <div className="flex items-center gap-1">
+      <input type="range" min={lo} max={Math.max(hi, value)} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-1 w-16 accent-[#2b7cd3]" />
+      <div className="w-[56px]"><NumberField value={value} onCommit={onChange} /></div>
+    </div>
+  );
+}
+
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="grid grid-cols-[1fr_120px] items-center gap-2 border-b border-[#eee] px-2 py-1 text-[12px]">
+  <div className="grid grid-cols-[1fr_150px] items-center gap-2 border-b border-[#eee] px-2 py-1 text-[12px]">
     <span>{label}</span>
     <div className="text-right">{children}</div>
   </div>
@@ -43,7 +56,7 @@ export function FlowsheetProperties() {
           <Row label="Units">{doc.units.length}</Row>
           <Row label="Streams">{doc.streams.length}</Row>
           <Row label="Saved to account">{fs.saving ? "Saving…" : "Yes when signed in"}</Row>
-          <p className="px-2 py-2 text-[#555]">Select a unit or stream on the canvas to edit it. Run Simulation solves the whole flowsheet.</p>
+          <p className="px-2 py-2 text-[#555]">Select a unit or stream to edit it. Values and results update live as you change them; Run saves a run to your account.</p>
           {fs.solution && (
             <div className="px-2 pb-2">
               <p className={`font-semibold ${fs.solution.ok ? "text-[#0f7a32]" : "text-[#b42318]"}`}>
@@ -70,7 +83,7 @@ export function FlowsheetProperties() {
                 {fed ? (
                   <span className="text-[#666]" title="Taken from the connected stream">from stream</span>
                 ) : (
-                  <NumberField value={unit.specs[spec.key] ?? spec.value} onCommit={(v) => fs.updateSpec(unit.id, spec.key, v)} />
+                  <Live value={unit.specs[spec.key] ?? spec.value} base={spec.value} onChange={(v) => fs.updateSpec(unit.id, spec.key, v)} />
                 )}
               </Row>
             );
@@ -81,7 +94,7 @@ export function FlowsheetProperties() {
               <Row key={r.label} label={`${r.label} (${r.unit})`}>{formatNumber(r.value, r.digits)}</Row>
             ))
           ) : (
-            <p className="px-2 py-1 text-[12px] text-[#555]">Run Simulation to see results.</p>
+            <p className="px-2 py-1 text-[12px] text-[#555]">Results appear here as soon as the unit can be solved.</p>
           )}
           {fs.solution?.units[unit.id]?.messages.map((m) => (
             <p key={m} className="px-2 text-[12px] text-[#b42318]">{m}</p>
@@ -120,15 +133,15 @@ export function FlowsheetProperties() {
                   <Row label="Vapor fraction">{formatNumber(fs.solution.streams[stream.id].vaporFraction, 2)}</Row>
                 </>
               ) : (
-                <p className="px-2 py-1 text-[12px] text-[#555]">Run Simulation to calculate this stream.</p>
+                <p className="px-2 py-1 text-[12px] text-[#555]">Calculated live once the upstream units are connected.</p>
               )}
             </>
           ) : (
             <>
               <p className="px-2 pt-3 text-[11px] font-semibold uppercase text-[#666]">Feed conditions</p>
-              <Row label="Temperature (°C)"><NumberField value={stream.temperature} onCommit={(v) => fs.updateStream(stream.id, { temperature: v })} /></Row>
-              <Row label="Pressure (bar)"><NumberField value={stream.pressure} onCommit={(v) => fs.updateStream(stream.id, { pressure: v })} /></Row>
-              <Row label="Mass flow (kg/h)"><NumberField value={stream.flow} onCommit={(v) => fs.updateStream(stream.id, { flow: v })} /></Row>
+              <Row label="Temperature (°C)"><Live value={stream.temperature} min={0} max={150} onChange={(v) => fs.updateStream(stream.id, { temperature: v })} /></Row>
+              <Row label="Pressure (bar)"><Live value={stream.pressure} min={0.1} max={10} onChange={(v) => fs.updateStream(stream.id, { pressure: v })} /></Row>
+              <Row label="Mass flow (kg/h)"><Live value={stream.flow} min={1} max={2000} onChange={(v) => fs.updateStream(stream.id, { flow: v })} /></Row>
             </>
           )}
         </div>

@@ -41,7 +41,7 @@ export function FlowsheetStreamsTable() {
                     <td className="border border-[#e1e1e1] px-2 py-0.5 text-right">{formatNumber(value.vaporFraction, 2)}</td>
                   </>
                 ) : (
-                  <td colSpan={4} className="border border-[#e1e1e1] px-2 py-0.5 text-[#666]">Run Simulation to calculate</td>
+                  <td colSpan={4} className="border border-[#e1e1e1] px-2 py-0.5 text-[#666]">Connect upstream units to calculate</td>
                 )}
               </tr>
             );

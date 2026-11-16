@@ -93,7 +93,6 @@ export function MenuBar() {
       { label: "Select Cooler", action: () => twin.openUnit("cooler") },
     ],
     help: [
-      { label: "Quick guide", action: () => window.dispatchEvent(new Event("open-guide")) },
       {
         label: "About this MVP",
         action: () =>
