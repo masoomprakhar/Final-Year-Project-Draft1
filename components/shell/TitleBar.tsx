@@ -17,7 +17,7 @@ export function TitleBar() {
           {PROJECT_TITLE}
         </span>
         <nav className="ml-3 flex gap-1 text-[11px]">
-          {[["/datasets", "Datasets"], ["/runs", "Runs"], ["/monitoring", "Monitoring"], ["/models", "ML Models"]].map(([href, label]) => (
+          {[["/datasets", "Datasets"], ["/runs", "Runs"], ["/monitoring", "Monitoring"], ["/models", "ML Models"], ["/dashboard", "Dashboard"], ["/dynamics", "Dynamics"], ["/optimization", "Optimization"], ["/map", "Feature Map"]].map(([href, label]) => (
             <Link key={href} href={href} className="border border-transparent px-2 py-0.5 hover:border-[#bbb] hover:bg-white">
               {label}
             </Link>

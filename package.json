@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "sync:edge": "node scripts/sync-edge-shared.mjs",
-    "test": "tsx --test scripts/*.test.ts"
+    "test": "tsx --test scripts/*.test.ts",
+    "docs:map": "tsx scripts/gen-feature-map.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
