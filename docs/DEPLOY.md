@@ -46,3 +46,14 @@ For a fresh project run them in order (`npx supabase db push`).
 
 Per user, enforced in Postgres: 120 runs/minute, 20 datasets/10 minutes, 30 flowsheets/10 minutes.
 Edit `0004_ml_registry_and_rate_limits.sql` (the `enforce_rate_limit(max, seconds)` arguments) to change them.
+
+## GitHub Pages (alternative to Vercel)
+
+The workflow `.github/workflows/deploy-pages.yml` builds a static export and publishes it on every push to `main`.
+
+1. Repo **Settings → Pages → Source: GitHub Actions**.
+2. Repo **Settings → Secrets and variables → Actions → Variables**: add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (the anon key is public by design).
+3. Push to `main` (or run the workflow manually). The site appears at `https://<user>.github.io/<repo>/`.
+4. In Supabase **Auth → URL Configuration**, set the Site URL and a Redirect URL to that address.
+
+Test the Pages build locally: `PAGES_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/Final-Year-Project-Draft1 npm run build`, output in `out/`.
