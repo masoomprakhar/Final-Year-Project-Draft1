@@ -129,6 +129,8 @@ export async function updatePlantRow(datasetId: string, row: PlantRow): Promise<
 export type RunRow = {
   id: string;
   dataset_id: string | null;
+  flowsheet_id: string | null;
+  scope: "plant_row" | "flowsheet";
   recorded_at: string;
   mode: "simulation" | "twin";
   engine: "mock" | "dwsim";
@@ -158,7 +160,7 @@ export async function listRuns(limit = 200): Promise<RunRow[]> {
   const { data } = await getBrowserSupabase()
     .from("simulation_runs")
     .select(
-      "id,dataset_id,recorded_at,mode,engine,status,error_message,created_at,simulation_results(hot_outlet_temperature,cold_outlet_temperature,heat_duty),ml_predictions(heat_duty,is_demo)",
+      "id,dataset_id,flowsheet_id,scope,recorded_at,mode,engine,status,error_message,created_at,simulation_results(hot_outlet_temperature,cold_outlet_temperature,heat_duty),ml_predictions(heat_duty,is_demo)",
     )
     .order("created_at", { ascending: false })
     .limit(limit);

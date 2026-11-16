@@ -209,6 +209,7 @@ type TwinContextValue = {
   cycleFlowsheet: () => void;
   backendEnabled: boolean;
   userEmail: string | null;
+  userId: string | null;
   authOpen: boolean;
   setAuthOpen: (open: boolean) => void;
   signIn: (email: string, password: string) => ReturnType<typeof apiSignIn>;
@@ -234,6 +235,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
   const datasetIdRef = useRef<string | null>(null);
   const userIdRef = useRef<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const backendEnabled = isSupabaseConfigured();
   const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null);
@@ -364,6 +366,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
       stopMonitoring = null;
       userIdRef.current = user?.id ?? null;
       setUserEmail(user?.email ?? null);
+      setUserId(user?.id ?? null);
       if (!user) {
         setDataset(null);
         void refreshStored();
@@ -1009,6 +1012,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
     cycleFlowsheet,
     backendEnabled,
     userEmail,
+    userId,
     authOpen,
     setAuthOpen,
     signIn,

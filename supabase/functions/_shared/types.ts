@@ -13,7 +13,14 @@ export type MessageLevel = "info" | "success" | "warning" | "error";
 
 export type ObjectId = "E-1" | "P-1" | "P-2" | "S1" | "S2" | "S3" | "S4";
 
-export type BottomTab = "streams" | "simulation" | "charts" | "messages";
+export type BottomTab =
+  | "streams"
+  | "simulation"
+  | "charts"
+  | "messages"
+  | "datasets"
+  | "runs"
+  | "alerts";
 
 export type ChartTab =
   | "temperature"

@@ -13,11 +13,11 @@ import {
   Table,
   TrendingUp,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { StatusPill } from "@/components/StatusPill";
-import { UNIT_IDS } from "@/lib/data/unitModels";
+import { CATALOG, UNIT_TYPES } from "@/lib/flowsheet/flowsheetCatalog";
+import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { useTwin } from "@/lib/store/TwinProvider";
-import type { ObjectId } from "@/lib/types";
 
 function RibbonButton({
   label,
@@ -49,42 +49,47 @@ function RibbonButton({
 
 export function Ribbon() {
   const twin = useTwin();
+  const fs = useFlowsheets();
+  const [unitMenu, setUnitMenu] = useState(false);
 
   return (
     <div className="flex h-[76px] shrink-0 items-center border-b border-[#d0d0d0] bg-white">
       <div className="flex h-full items-center px-1">
-        <RibbonButton
-          label="Add Unit"
-          onClick={() => {
-            const index = twin.activeUnitId ? UNIT_IDS.indexOf(twin.activeUnitId) : -1;
-            twin.openUnit(UNIT_IDS[(index + 1) % UNIT_IDS.length]);
-          }}
-        >
-          <Box className="h-5 w-5" strokeWidth={1.6} />
-        </RibbonButton>
-        <RibbonButton
-          label="Add Stream"
-          onClick={() => {
-            const order: ObjectId[] = ["S1", "S2", "S3", "S4"];
-            const current =
-              twin.selection.kind === "object" ? order.indexOf(twin.selection.id) : -1;
-            const next = order[(current + 1) % order.length];
-            twin.selectObject(next);
-            twin.notify(`Material stream ${next} selected.`);
-          }}
-        >
+        <div className="relative">
+          <RibbonButton label="Add Unit" active={unitMenu} onClick={() => setUnitMenu((open) => !open)}>
+            <Box className="h-5 w-5" strokeWidth={1.6} />
+          </RibbonButton>
+          {unitMenu && (
+            <div className="absolute left-0 top-[68px] z-30 w-44 border border-[#c9c9c9] bg-white py-1 shadow-md">
+              {UNIT_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    fs.addUnit(type);
+                    setUnitMenu(false);
+                  }}
+                  className="block w-full px-3 py-1 text-left text-[12px] hover:bg-[#e7f2fb]"
+                >
+                  {CATALOG[type].label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <RibbonButton label="Add Stream" onClick={fs.addStream}>
           <ArrowRightLeft className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
-        <RibbonButton label="Connect" onClick={twin.connectActive}>
+        <RibbonButton label="Connect" active={fs.connectMode} onClick={fs.active ? fs.toggleConnect : twin.connectActive}>
           <Spline className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
-        <RibbonButton label="Auto-Layout" onClick={twin.autoLayout}>
+        <RibbonButton label="Auto-Layout" onClick={fs.active ? fs.autoLayout : twin.autoLayout}>
           <LayoutGrid className="h-5 w-5" strokeWidth={1.6} />
         </RibbonButton>
       </div>
       <div className="h-12 w-px bg-[#e3e3e3]" />
       <div className="flex h-full items-center px-1">
-        <RibbonButton label="Run Simulation" onClick={twin.runSimulation} width="w-[88px]">
+        <RibbonButton label="Run Simulation" onClick={fs.active ? () => void fs.run() : twin.runSimulation} width="w-[88px]">
           <Play className="h-6 w-6 fill-[#1f8a3b] text-[#1f8a3b]" />
         </RibbonButton>
         <RibbonButton label="Stop" onClick={twin.stopSimulation} width="w-[64px]">

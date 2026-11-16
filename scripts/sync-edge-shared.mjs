@@ -9,6 +9,10 @@ const FILES = [
   ["lib/simulation/mockHeatExchanger.ts", "mockHeatExchanger.ts"],
   ["lib/ml/mockModel.ts", "mockModel.ts"],
   ["lib/csv/parsePlantCsv.ts", "parsePlantCsv.ts"],
+  ["lib/data/unitModels.ts", "unitModels.ts"],
+  ["lib/flowsheet/flowsheetTypes.ts", "flowsheetTypes.ts"],
+  ["lib/flowsheet/flowsheetCatalog.ts", "flowsheetCatalog.ts"],
+  ["lib/flowsheet/flowsheetSolver.ts", "flowsheetSolver.ts"],
 ];
 const OUT = "supabase/functions/_shared";
 mkdirSync(OUT, { recursive: true });

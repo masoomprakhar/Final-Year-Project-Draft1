@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import { formatComposition, formatNumber } from "@/lib/format";
+import { FlowsheetEditor } from "@/components/flowsheet/FlowsheetEditor";
+import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { useTwin } from "@/lib/store/TwinProvider";
 import type { StreamColumn } from "@/lib/types";
 
@@ -10,7 +12,8 @@ const COLD = "#1f5fd0";
 
 export function FlowsheetCanvas() {
   const twin = useTwin();
-  const { streams, selection, selectObject, unitView, openFlowsheet, openUnit, cycleFlowsheet } = twin;
+  const fs = useFlowsheets();
+  const { streams, selection, selectObject, unitView, openFlowsheet, openUnit } = twin;
   const byId = Object.fromEntries(streams.map((stream) => [stream.id, stream])) as Record<
     StreamColumn["id"],
     StreamColumn
@@ -31,7 +34,7 @@ export function FlowsheetCanvas() {
     <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
       <div className="flex h-8 shrink-0 items-end gap-1 border-b border-[#d5d5d5] bg-[#f3f3f3] px-1">
         {tabs.map((tab) => {
-          const active = (twin.activeUnitId ?? null) === tab.id;
+          const active = !fs.active && (twin.activeUnitId ?? null) === tab.id;
           return (
             <div
               key={tab.label}
@@ -39,7 +42,14 @@ export function FlowsheetCanvas() {
                 active ? "border-b-white bg-white" : "border-transparent bg-[#f3f3f3] text-[#555]"
               }`}
             >
-              <button type="button" onClick={() => (tab.id ? openUnit(tab.id) : openFlowsheet())}>
+              <button
+                type="button"
+                onClick={() => {
+                  fs.closeFlowsheet();
+                  if (tab.id) openUnit(tab.id);
+                  else openFlowsheet();
+                }}
+              >
                 {tab.label}
               </button>
               {tab.id && (
@@ -50,17 +60,41 @@ export function FlowsheetCanvas() {
             </div>
           );
         })}
+        {fs.docs.map((doc) => (
+          <div
+            key={doc.id}
+            className={`flex h-7 items-center gap-2 border px-3 text-[12px] ${
+              fs.activeId === doc.id ? "border-b-white bg-white" : "border-transparent bg-[#f3f3f3] text-[#555]"
+            }`}
+          >
+            <button type="button" onClick={() => fs.openFlowsheet(doc.id)}>
+              {doc.name}
+            </button>
+            <button
+              type="button"
+              title="Delete this flowsheet"
+              onClick={() => {
+                if (window.confirm(`Delete "${doc.name}" and all its units and streams?`)) fs.removeFlowsheet(doc.id);
+              }}
+              className="text-[#666]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ))}
         <button
           type="button"
-          title="Cycle flowsheets"
-          onClick={cycleFlowsheet}
+          title="New flowsheet"
+          onClick={fs.createFlowsheet}
           className="grid h-7 w-7 place-items-center text-[16px] text-[#444] hover:bg-[#e7f2fb]"
         >
           +
         </button>
       </div>
       <div className="min-h-0 flex-1">
-        {unitView ? (
+        {fs.active ? (
+          <FlowsheetEditor />
+        ) : unitView ? (
           <UnitDiagram viewName={unitView.name} typeLabel={unitView.typeLabel} streams={unitView.streams} connections={unitView.connections} />
         ) : (
         <svg viewBox="0 0 1000 480" className="h-full w-full" role="img" aria-label="Heat exchanger flowsheet">

@@ -7,6 +7,8 @@ import { MessagesPanel } from "@/components/bottom/MessagesPanel";
 import { RunsPanel } from "@/components/bottom/RunsPanel";
 import { SimulationPanel } from "@/components/bottom/SimulationPanel";
 import { StreamsTable } from "@/components/bottom/StreamsTable";
+import { FlowsheetStreamsTable } from "@/components/bottom/FlowsheetStreamsTable";
+import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { useTwin } from "@/lib/store/TwinProvider";
 import type { BottomTab } from "@/lib/types";
 
@@ -22,6 +24,7 @@ const TABS: { id: BottomTab; label: string }[] = [
 
 export function BottomPanel() {
   const { bottomTab, setBottomTab, stored } = useTwin();
+  const fs = useFlowsheets();
   const openAlerts = stored.alerts.filter((alert) => !alert.acknowledged).length;
 
   return (
@@ -46,7 +49,8 @@ export function BottomPanel() {
         ))}
       </div>
       <div className="min-h-0 flex-1">
-        {bottomTab === "streams" && (
+        {bottomTab === "streams" && fs.active && <FlowsheetStreamsTable />}
+        {bottomTab === "streams" && !fs.active && (
           <div className="grid h-full grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
             <StreamsTable />
             <div className="min-h-0 border-l border-[#e5e5e5]">

@@ -21,3 +21,10 @@ export function formatComposition(value: number) {
   const tenths = Math.abs(value * 10 - Math.round(value * 10));
   return tenths < 1e-6 ? value.toFixed(1) : value.toFixed(3);
 }
+
+/** timestamptz or ISO string to "YYYY-MM-DD HH:mm" (UTC), the label used across the app. */
+export function formatStamp(value: string) {
+  const time = new Date(value);
+  if (Number.isNaN(time.getTime())) return value;
+  return time.toISOString().slice(0, 16).replace("T", " ");
+}

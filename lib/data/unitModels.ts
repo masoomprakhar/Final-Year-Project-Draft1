@@ -559,3 +559,4 @@ export function evaluateUnit(id: string, specs: Record<string, number> = {}): Un
     connections: `${definition.name} is linked to the main heat-exchanger case.`,
   };
 }
+export const UNIT_DEFINITIONS = DEFINITIONS;

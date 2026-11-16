@@ -50,7 +50,7 @@ export function RunsPanel() {
           <table className="w-full min-w-[820px] border-collapse text-[12px]">
             <thead className="sticky top-0 bg-[#f7f7f7]">
               <tr>
-                {["Plant time", "Mode", "Engine", "Status", "Hot out (°C)", "Cold out (°C)", "Duty (kW)", "ML duty (kW, demo)", "Alerts", "Saved"].map((label) => (
+                {["Plant time", "Scope", "Mode", "Engine", "Status", "Hot out (°C)", "Cold out (°C)", "Duty (kW)", "ML duty (kW, demo)", "Alerts", "Saved"].map((label) => (
                   <th key={label} className="whitespace-nowrap border border-[#e1e1e1] px-2 py-0.5 text-left font-semibold">
                     {label}
                   </th>
@@ -65,6 +65,7 @@ export function RunsPanel() {
                 return (
                   <tr key={run.id}>
                     <td className="whitespace-nowrap border border-[#eee] px-2 py-0.5">{formatStamp(run.recorded_at)}</td>
+                    <td className="border border-[#eee] px-2 py-0.5">{run.scope === "flowsheet" ? "Flowsheet" : "Plant row"}</td>
                     <td className="border border-[#eee] px-2 py-0.5">{run.mode}</td>
                     <td className="border border-[#eee] px-2 py-0.5">{run.engine}</td>
                     <td

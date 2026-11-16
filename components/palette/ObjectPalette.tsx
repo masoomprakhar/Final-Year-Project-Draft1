@@ -22,8 +22,16 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { UnitType } from "@/lib/flowsheet/flowsheetTypes";
+import { useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { useTwin } from "@/lib/store/TwinProvider";
 import type { ObjectId } from "@/lib/types";
+
+const PALETTE_TYPES: Record<string, UnitType> = {
+  Mixer: "mixer", Splitter: "splitter", "Heat Exchanger": "exchanger", Reactor: "reactor",
+  "Distillation Column": "column", Pump: "pump", Compressor: "compressor", Valve: "valve",
+  "Flash Drum": "flash", Separator: "separator", Heater: "heater", Cooler: "cooler",
+};
 
 type PaletteItem = {
   name: string;
@@ -84,6 +92,7 @@ function matches(name: string, query: string) {
 
 export function ObjectPalette() {
   const twin = useTwin();
+  const fs = useFlowsheets();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -99,6 +108,11 @@ export function ObjectPalette() {
   );
 
   function choose(item: PaletteItem) {
+    if (fs.active) {
+      if (item.name === "Material Stream") return fs.addStream();
+      const type = PALETTE_TYPES[item.name];
+      if (type) return fs.addUnit(type);
+    }
     if (item.name === "Pump") {
       const next = selectedId === "P-1" && !twin.activeUnitId ? "P-2" : "P-1";
       twin.selectObject(next);

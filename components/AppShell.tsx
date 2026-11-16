@@ -6,14 +6,17 @@ import { AuthDialog } from "@/components/dialogs/AuthDialog";
 import { UploadDialog } from "@/components/dialogs/UploadDialog";
 import { FlowsheetCanvas } from "@/components/flowsheet/FlowsheetCanvas";
 import { ObjectPalette } from "@/components/palette/ObjectPalette";
+import { FlowsheetProperties } from "@/components/properties/FlowsheetProperties";
 import { PropertiesPanel } from "@/components/properties/PropertiesPanel";
 import { MenuBar } from "@/components/shell/MenuBar";
 import { Ribbon } from "@/components/shell/Ribbon";
 import { TitleBar } from "@/components/shell/TitleBar";
+import { FlowsheetProvider, useFlowsheets } from "@/lib/store/FlowsheetProvider";
 import { TwinProvider, useTwin } from "@/lib/store/TwinProvider";
 
 function Workspace() {
   const { setMenu } = useTwin();
+  const { active } = useFlowsheets();
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -45,7 +48,7 @@ function Workspace() {
             <FlowsheetCanvas />
             <BottomPanel />
           </div>
-          <PropertiesPanel />
+          {active ? <FlowsheetProperties /> : <PropertiesPanel />}
         </div>
         <UploadDialog />
         <AuthDialog />
@@ -57,7 +60,9 @@ function Workspace() {
 export function AppShell() {
   return (
     <TwinProvider>
-      <Workspace />
+      <FlowsheetProvider>
+        <Workspace />
+      </FlowsheetProvider>
     </TwinProvider>
   );
 }
