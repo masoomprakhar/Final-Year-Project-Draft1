@@ -40,6 +40,18 @@ npx tsx scripts/write-sample-csv.ts
 
 Hours 07:00, 15:00, and 21:00 contain planted deviations so the anomaly table is not all NORMAL. The 12:00 row matches the flowsheet reference case.
 
+## Backend (Supabase)
+
+Postgres, Auth, Storage, Edge Functions, RLS and Realtime. The browser uses only the public anon key.
+
+1. Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings > API Keys). The service-role key is never used by this app.
+2. Schema: `supabase/migrations/`. Tables `datasets`, `plant_data`, `simulation_runs`, `simulation_results`, `ml_predictions`, `alerts`; every row is owned by `auth.uid()` and protected by RLS. Private Storage bucket `plant-csv`.
+3. Edge Function `supabase/functions/twin-api` with actions `ingest-dataset`, `simulate`, `ml-predict`. It runs as the signed-in user, so RLS applies.
+4. The solver, ML and CSV logic stays in `lib/`. After editing it run `npm run sync:edge`, then redeploy `twin-api`.
+5. `npm run dev`. Use **Sign in** in the title bar. Signed out, the app still works on local sample data.
+
+See `docs/ROADMAP.md` for what is built and left, and `docs/DWSIM_INTEGRATION.md` for the DWSIM plan.
+
 ## Where a backend replaces this
 
 Keep the UI. Swap the client modules when the API exists:

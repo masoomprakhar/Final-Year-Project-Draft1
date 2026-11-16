@@ -4,7 +4,7 @@ import { PROJECT_TITLE } from "@/lib/project";
 import { useTwin } from "@/lib/store/TwinProvider";
 
 export function TitleBar() {
-  const { notify } = useTwin();
+  const { notify, backendEnabled, userEmail, setAuthOpen, signOut } = useTwin();
 
   return (
     <header className="flex h-8 shrink-0 items-center justify-between border-b border-[#d0d0d0] bg-[#f3f3f3] pl-2">
@@ -16,6 +16,16 @@ export function TitleBar() {
           {PROJECT_TITLE}
         </span>
       </div>
+      {backendEnabled && (
+        <button
+          type="button"
+          onClick={() => (userEmail ? void signOut() : setAuthOpen(true))}
+          title={userEmail ? "Sign out" : "Sign in to save datasets, runs and alerts"}
+          className="mr-2 h-6 self-center border border-[#bbb] bg-white px-2 text-[11px] hover:bg-[#e7f1fb]"
+        >
+          {userEmail ? `${userEmail} · Sign out` : "Sign in"}
+        </button>
+      )}
       <div className="flex h-full">
         {["—", "□", "✕"].map((glyph) => (
           <button

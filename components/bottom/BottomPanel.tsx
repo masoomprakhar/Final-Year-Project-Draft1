@@ -1,7 +1,10 @@
 "use client";
 
+import { AlertsPanel } from "@/components/bottom/AlertsPanel";
 import { ChartsPanel } from "@/components/bottom/ChartsPanel";
+import { DatasetsPanel } from "@/components/bottom/DatasetsPanel";
 import { MessagesPanel } from "@/components/bottom/MessagesPanel";
+import { RunsPanel } from "@/components/bottom/RunsPanel";
 import { SimulationPanel } from "@/components/bottom/SimulationPanel";
 import { StreamsTable } from "@/components/bottom/StreamsTable";
 import { useTwin } from "@/lib/store/TwinProvider";
@@ -12,10 +15,14 @@ const TABS: { id: BottomTab; label: string }[] = [
   { id: "simulation", label: "Simulation Results" },
   { id: "charts", label: "Charts" },
   { id: "messages", label: "Messages" },
+  { id: "datasets", label: "Datasets" },
+  { id: "runs", label: "Runs" },
+  { id: "alerts", label: "Alerts" },
 ];
 
 export function BottomPanel() {
-  const { bottomTab, setBottomTab } = useTwin();
+  const { bottomTab, setBottomTab, stored } = useTwin();
+  const openAlerts = stored.alerts.filter((alert) => !alert.acknowledged).length;
 
   return (
     <section className="flex h-[292px] shrink-0 flex-col border-t border-[#cfcfcf] bg-white">
@@ -32,6 +39,9 @@ export function BottomPanel() {
             }`}
           >
             {tab.label}
+            {tab.id === "alerts" && openAlerts > 0 && (
+              <span className="ml-1 rounded-full bg-[#b42318] px-1.5 text-[10px] font-semibold text-white">{openAlerts}</span>
+            )}
           </button>
         ))}
       </div>
@@ -47,6 +57,9 @@ export function BottomPanel() {
         {bottomTab === "simulation" && <SimulationPanel />}
         {bottomTab === "charts" && <ChartsPanel />}
         {bottomTab === "messages" && <MessagesPanel />}
+        {bottomTab === "datasets" && <DatasetsPanel />}
+        {bottomTab === "runs" && <RunsPanel />}
+        {bottomTab === "alerts" && <AlertsPanel />}
       </div>
     </section>
   );

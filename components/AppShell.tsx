@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { BottomPanel } from "@/components/bottom/BottomPanel";
+import { AuthDialog } from "@/components/dialogs/AuthDialog";
 import { UploadDialog } from "@/components/dialogs/UploadDialog";
 import { FlowsheetCanvas } from "@/components/flowsheet/FlowsheetCanvas";
 import { ObjectPalette } from "@/components/palette/ObjectPalette";
@@ -47,6 +48,7 @@ function Workspace() {
           <PropertiesPanel />
         </div>
         <UploadDialog />
+        <AuthDialog />
       </div>
     </div>
   );

@@ -48,6 +48,7 @@ export function MenuBar() {
       { label: "Load Sample Data", action: twin.loadSample },
       { label: "Upload Plant CSV...", action: () => twin.setUploadOpen(true) },
       { label: "Download Sample CSV", action: downloadSample },
+      { label: "Generate Demo Runs & Alerts", action: () => void twin.generateDemoRuns() },
     ],
     home: [],
     simulation: [
@@ -84,6 +85,9 @@ export function MenuBar() {
       { label: "Streams", action: () => twin.setBottomTab("streams") },
       { label: "Charts", action: () => twin.setBottomTab("charts") },
       { label: "Messages", action: () => twin.setBottomTab("messages") },
+      { label: "Datasets", action: () => twin.setBottomTab("datasets") },
+      { label: "Runs", action: () => twin.setBottomTab("runs") },
+      { label: "Alerts", action: () => twin.setBottomTab("alerts") },
       { label: "Select Heat Exchanger", action: () => twin.selectObject("E-1") },
       { label: "Select Heater", action: () => twin.openUnit("heater") },
       { label: "Select Cooler", action: () => twin.openUnit("cooler") },

@@ -4,11 +4,33 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { parsePlantCsv } from "@/lib/csv/parsePlantCsv";
+import {
+  acknowledgeAlerts as apiAcknowledgeAlerts,
+  deleteDataset,
+  fetchDataset,
+  listAlerts,
+  listDatasets,
+  listRuns,
+  onUserChange,
+  persistRun,
+  seedDemoRuns,
+  signIn as apiSignIn,
+  signOut as apiSignOut,
+  signUp as apiSignUp,
+  subscribeMonitoring,
+  updatePlantRow,
+  uploadAndIngest,
+  type AlertRow,
+  type DatasetInfo,
+  type RunRow,
+} from "@/lib/api/client";
+import { parsePlantCsv, rowsToCsv } from "@/lib/csv/parsePlantCsv";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { DEFAULT_ROW_ID, SAMPLE_ROWS } from "@/lib/data/samplePlantData";
 import { defaultUnitSpecs, evaluateUnit, UNIT_IDS, type UnitEvaluation } from "@/lib/data/unitModels";
 import { buildAnomalies, predictFromOutput, worstStatus } from "@/lib/ml/mockModel";
@@ -34,6 +56,13 @@ import type {
   SimStatus,
   SimulationOutput,
 } from "@/lib/types";
+
+export type StoredData = {
+  datasets: DatasetInfo[];
+  runs: RunRow[];
+  alerts: AlertRow[];
+  loading: boolean;
+};
 
 type SolvedBundle = {
   results: Record<string, SimulationOutput>;
@@ -178,6 +207,20 @@ type TwinContextValue = {
   autoLayout: () => void;
   optimize: () => void;
   cycleFlowsheet: () => void;
+  backendEnabled: boolean;
+  userEmail: string | null;
+  authOpen: boolean;
+  setAuthOpen: (open: boolean) => void;
+  signIn: (email: string, password: string) => ReturnType<typeof apiSignIn>;
+  signUp: (email: string, password: string) => ReturnType<typeof apiSignUp>;
+  signOut: () => Promise<void>;
+  stored: StoredData;
+  activeDatasetId: string | null;
+  openDataset: (id: string) => Promise<void>;
+  removeDataset: (id: string) => Promise<void>;
+  acknowledgeAlerts: (ids?: string[]) => Promise<void>;
+  generateDemoRuns: () => Promise<void>;
+  refreshStored: () => Promise<void>;
 };
 
 const TwinContext = createContext<TwinContextValue | null>(null);
@@ -187,6 +230,57 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
   const stateRef = useRef(state);
   stateRef.current = state;
   const runToken = useRef(0);
+  // Id of the Supabase dataset on screen; null while showing the bundled sample.
+  const datasetIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const backendEnabled = isSupabaseConfigured();
+  const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null);
+  const [stored, setStored] = useState<StoredData>({ datasets: [], runs: [], alerts: [], loading: false });
+  const refreshTimer = useRef<number | null>(null);
+  const rowSaveTimer = useRef<number | null>(null);
+
+  const setDataset = useCallback((id: string | null) => {
+    datasetIdRef.current = id;
+    setActiveDatasetId(id);
+  }, []);
+
+  const refreshStored = useCallback(async () => {
+    if (!userIdRef.current) {
+      setStored({ datasets: [], runs: [], alerts: [], loading: false });
+      return;
+    }
+    setStored((current) => ({ ...current, loading: true }));
+    const [datasets, runs, alerts] = await Promise.all([listDatasets(), listRuns(), listAlerts()]);
+    if (!userIdRef.current) return;
+    setStored({ datasets, runs, alerts, loading: false });
+  }, []);
+
+  // Realtime bursts (a bulk insert fires many events) collapse into one refresh.
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
+    refreshTimer.current = window.setTimeout(() => void refreshStored(), 600);
+  }, [refreshStored]);
+
+  /** Puts a stored dataset on screen: solves every row locally and selects the 12:00 base case. */
+  const showDataset = useCallback(
+    (latest: { dataset: DatasetInfo; rows: PlantRow[] }, message: string) => {
+      setDataset(latest.dataset.id);
+      const solved = solveAll(latest.rows, stateRef.current.equipment);
+      const base = latest.rows.find((row) => row.timestamp.endsWith("12:00")) ?? latest.rows[0];
+      setState((current) => ({
+        ...current,
+        rows: latest.rows,
+        selectedId: base.id,
+        ...solved,
+        status: "Converged",
+        errorMessage: "",
+        messages: [...current.messages, makeMessage("success", message)],
+      }));
+    },
+    [setDataset],
+  );
   const timers = useRef<number[]>([]);
 
   const clearTimers = useCallback(() => {
@@ -256,6 +350,65 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
     openUnit("heater");
   }, [openUnit]);
 
+  // Auth + data. Signed out, the bundled sample keeps the app fully usable. Signed in, the user's
+  // latest dataset is loaded from Postgres (their first sign-in stores the sample via Storage),
+  // and run / alert events stream into the Messages panel over Realtime.
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    let stopMonitoring: (() => void) | null = null;
+    let generation = 0;
+
+    const stopAuth = onUserChange(async (user) => {
+      const mine = (generation += 1);
+      stopMonitoring?.();
+      stopMonitoring = null;
+      userIdRef.current = user?.id ?? null;
+      setUserEmail(user?.email ?? null);
+      if (!user) {
+        setDataset(null);
+        void refreshStored();
+        return;
+      }
+
+      stopMonitoring = subscribeMonitoring(user.id, (text, level) => {
+        setState((current) => ({ ...current, messages: [...current.messages, makeMessage(level, text)] }));
+        scheduleRefresh();
+      });
+
+      let latest = await fetchDataset();
+      if (!latest) {
+        const saved = await uploadAndIngest(rowsToCsv(SAMPLE_ROWS), "Sample plant data (2026-04-12)", "sample");
+        if (saved.ok) latest = await fetchDataset();
+        else {
+          setState((current) => ({
+            ...current,
+            messages: [...current.messages, makeMessage("warning", `Could not store the sample dataset: ${saved.error}`)],
+          }));
+        }
+      }
+      if (mine !== generation || !latest || latest.rows.length === 0) return;
+
+      void refreshStored();
+      showDataset(latest, `Signed in as ${user.email}. Loaded ${latest.rows.length} rows from "${latest.dataset.name}".`);
+    });
+
+    return () => {
+      generation += 1;
+      stopAuth();
+      stopMonitoring?.();
+    };
+  }, [setDataset, refreshStored, scheduleRefresh, showDataset]);
+
+  const signIn = useCallback((email: string, password: string) => apiSignIn(email, password), []);
+  const signUp = useCallback((email: string, password: string) => apiSignUp(email, password), []);
+  const signOut = useCallback(async () => {
+    await apiSignOut();
+    setState((current) => ({
+      ...current,
+      messages: [...current.messages, makeMessage("info", "Signed out. Changes now stay on this device.")],
+    }));
+  }, []);
+
   const selectRow = useCallback((id: string) => {
     setState((current) => ({ ...current, selectedId: id, menu: null }));
   }, []);
@@ -267,6 +420,24 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
         row.id === current.selectedId ? { ...row, ...patch } : row,
       ),
     }));
+
+    // Save the edited row to Postgres once typing pauses.
+    if (!userIdRef.current || !datasetIdRef.current) return;
+    const rowId = stateRef.current.selectedId;
+    if (rowSaveTimer.current) window.clearTimeout(rowSaveTimer.current);
+    rowSaveTimer.current = window.setTimeout(() => {
+      const datasetId = datasetIdRef.current;
+      const row = stateRef.current.rows.find((candidate) => candidate.id === rowId);
+      if (!datasetId || !row) return;
+      void updatePlantRow(datasetId, row).then((saved) => {
+        if (!saved.ok) {
+          setState((current) => ({
+            ...current,
+            messages: [...current.messages, makeMessage("warning", `Row edit was not saved: ${saved.error}`)],
+          }));
+        }
+      });
+    }, 900);
   }, []);
 
   const updateEquipment = useCallback((patch: Partial<EquipmentSpecs>) => {
@@ -291,6 +462,19 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
           bottomTab: "messages",
         }));
         return;
+      }
+
+      // Fire and forget: the Edge Function re-solves the row and stores the run. The UI never waits on it.
+      if (userIdRef.current) {
+        void persistRun(datasetIdRef.current, row, equipment, mode).then((saved) => {
+          if (saved.ok) scheduleRefresh();
+          if (!saved.ok) {
+            setState((current) => ({
+              ...current,
+              messages: [...current.messages, makeMessage("warning", `Run was not saved to Supabase: ${saved.error}`)],
+            }));
+          }
+        });
       }
 
       setState((current) => {
@@ -337,7 +521,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
         };
       });
     },
-    [],
+    [scheduleRefresh],
   );
 
   const startRun = useCallback(
@@ -449,6 +633,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
   }, [clearTimers]);
 
   const loadSample = useCallback(() => {
+    setDataset(null);
     runToken.current += 1;
     clearTimers();
     const solved = solveAll(SAMPLE_ROWS, DEFAULT_EQUIPMENT);
@@ -472,7 +657,7 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
       activeUnitId: null,
       unitSpecs: defaultUnitSpecs(),
     });
-  }, [clearTimers]);
+  }, [clearTimers, setDataset]);
 
   const applyUpload = useCallback(
     (text: string) => {
@@ -500,6 +685,20 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
       };
       const solved = solveAll(parsed.rows, equipment);
       const first = parsed.rows[0];
+      setDataset(null);
+      if (userIdRef.current) {
+        void uploadAndIngest(text, `Upload ${new Date().toISOString().slice(0, 16).replace("T", " ")}`, "upload").then((saved) => {
+          if (saved.ok) {
+            setDataset(saved.dataset.id);
+            void refreshStored();
+            notify(`Saved ${saved.dataset.row_count} rows to Supabase (CSV kept in Storage).`, "success");
+          } else {
+            notify(`Upload is shown locally but was not saved: ${saved.error}`, "warning");
+          }
+        });
+      } else if (isSupabaseConfigured()) {
+        notify("Sign in to save this upload to Supabase. It is shown locally for now.", "info");
+      }
       const notes = [
         makeMessage(
           "success",
@@ -532,8 +731,74 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
       }));
       return { ok: true, errors: [] };
     },
-    [clearTimers],
+    [clearTimers, notify, setDataset, refreshStored],
   );
+
+  const openDataset = useCallback(
+    async (id: string) => {
+      runToken.current += 1;
+      clearTimers();
+      const latest = await fetchDataset(id);
+      if (!latest || latest.rows.length === 0) {
+        notify("That dataset could not be loaded.", "error");
+        return;
+      }
+      showDataset(latest, `Opened "${latest.dataset.name}" (${latest.rows.length} rows).`);
+    },
+    [clearTimers, notify, showDataset],
+  );
+
+  const removeDataset = useCallback(
+    async (id: string) => {
+      const removed = await deleteDataset(id);
+      if (!removed.ok) {
+        notify(`Could not delete the dataset: ${removed.error}`, "error");
+        return;
+      }
+      notify("Dataset deleted. Its runs are kept without a dataset link.", "info");
+      if (datasetIdRef.current === id) {
+        const next = await fetchDataset();
+        if (next && next.rows.length > 0) showDataset(next, `Opened "${next.dataset.name}".`);
+        else {
+          setDataset(null);
+          loadSample();
+        }
+      }
+      await refreshStored();
+    },
+    [loadSample, notify, refreshStored, setDataset, showDataset],
+  );
+
+  const acknowledgeAlerts = useCallback(
+    async (ids?: string[]) => {
+      const done = await apiAcknowledgeAlerts(ids);
+      if (!done.ok) notify(`Could not acknowledge alerts: ${done.error}`, "error");
+      await refreshStored();
+    },
+    [notify, refreshStored],
+  );
+
+  const generateDemoRuns = useCallback(async () => {
+    const datasetId = datasetIdRef.current;
+    if (!userIdRef.current || !datasetId) {
+      notify("Sign in and open a stored dataset first.", "warning");
+      return;
+    }
+    const { rows, results, predictions, equipment } = stateRef.current;
+    const items = rows.flatMap((row) =>
+      results[row.id] && predictions[row.id]
+        ? [{ row, output: results[row.id], prediction: predictions[row.id] }]
+        : [],
+    );
+    const anomalies = buildAnomalies(rows, results, predictions);
+    const seeded = await seedDemoRuns(datasetId, items, equipment, anomalies);
+    if (seeded.ok) {
+      notify(`Stored ${seeded.runs} demo runs and ${seeded.alerts} alerts. ML values are demo data.`, "success");
+    } else {
+      notify(`Demo data was not stored: ${seeded.error}`, "warning");
+    }
+    await refreshStored();
+  }, [notify, refreshStored]);
 
   const setUploadOpen = useCallback((open: boolean) => {
     setState((current) => ({ ...current, uploadOpen: open, menu: null }));
@@ -742,6 +1007,20 @@ export function TwinProvider({ children }: { children: React.ReactNode }) {
     autoLayout,
     optimize,
     cycleFlowsheet,
+    backendEnabled,
+    userEmail,
+    authOpen,
+    setAuthOpen,
+    signIn,
+    signUp,
+    signOut,
+    stored,
+    activeDatasetId,
+    openDataset,
+    removeDataset,
+    acknowledgeAlerts,
+    generateDemoRuns,
+    refreshStored,
   };
 
   return <TwinContext.Provider value={value}>{children}</TwinContext.Provider>;
