@@ -13,7 +13,8 @@ const COLORS: Record<string, string> = {
 export function StatusPill({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-[2px] px-1.5 py-0.5 text-[11px] font-semibold ${COLORS[status] ?? "bg-[#f3f4f6] text-[#374151]"}`}
+      key={status}
+      className={`${status === "Running" ? "pill-running" : status === "Failed" ? "pill-failed" : "pill-pop"} inline-flex items-center rounded-[2px] px-1.5 py-0.5 text-[11px] font-semibold ${COLORS[status] ?? "bg-[#f3f4f6] text-[#374151]"}`}
     >
       {status}
     </span>

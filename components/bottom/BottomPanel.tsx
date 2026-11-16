@@ -48,7 +48,7 @@ export function BottomPanel() {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1">
+      <div key={bottomTab} className="fade-in min-h-0 flex-1">
         {bottomTab === "streams" && fs.active && <FlowsheetStreamsTable />}
         {bottomTab === "streams" && !fs.active && (
           <div className="grid h-full grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">

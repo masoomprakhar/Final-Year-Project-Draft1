@@ -54,7 +54,7 @@ export function FlowsheetEditor() {
   const isSelected = (kind: "unit" | "stream", id: string) => fs.selection?.kind === kind && fs.selection.id === id;
 
   return (
-    <div className="relative h-full">
+    <div className="relative h-full" data-flow={fs.solution ? (fs.solution.ok ? "done" : "idle") : "idle"}>
       {doc.units.length === 0 && doc.streams.length === 0 && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center text-[13px] text-[#555]">
           <div>
@@ -115,7 +115,7 @@ export function FlowsheetEditor() {
               }}
             >
               <path d={path} fill="none" stroke="transparent" strokeWidth={14} />
-              <path d={path} fill="none" stroke={stroke} strokeWidth={selected ? 3 : 2} markerEnd={selected ? "url(#fsArrowSel)" : "url(#fsArrow)"} />
+              <path className="flow-line" d={path} fill="none" stroke={stroke} strokeWidth={selected ? 3 : 2} markerEnd={selected ? "url(#fsArrowSel)" : "url(#fsArrow)"} />
               <text x={mid.x} y={mid.y - 8} textAnchor="middle" fontSize={12} fontWeight={650} fill="#1f2933" stroke="white" strokeWidth={3} paintOrder="stroke">
                 {stream.tag}
               </text>
@@ -136,7 +136,7 @@ export function FlowsheetEditor() {
           return (
             <g
               key={unit.id}
-              className={fs.connectMode ? "cursor-crosshair" : "cursor-grab"}
+              className={`${fs.connectMode ? "cursor-crosshair" : "cursor-grab"} ${selected ? "unit-selected" : outcome?.status === "ok" ? "unit-ok" : outcome?.status === "error" ? "unit-error" : ""}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 fs.clickTarget({ kind: "unit", id: unit.id });

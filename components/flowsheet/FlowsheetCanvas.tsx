@@ -31,7 +31,7 @@ export function FlowsheetCanvas() {
   ];
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+    <section data-flow={twin.status === "Running" ? "running" : twin.status === "Converged" ? "done" : "idle"} className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
       <div className="flex h-8 shrink-0 items-end gap-1 border-b border-[#d5d5d5] bg-[#f3f3f3] px-1">
         {tabs.map((tab) => {
           const active = !fs.active && (twin.activeUnitId ?? null) === tab.id;
@@ -106,12 +106,12 @@ export function FlowsheetCanvas() {
               <path d="M 0 0 L 10 5 L 0 10 z" fill={COLD} />
             </marker>
           </defs>
-          <path d="M 212 94 H 276" stroke={HOT} strokeWidth="2.4" fill="none" />
-          <path d="M 324 94 H 400 V 206 H 430" stroke={HOT} strokeWidth="2.4" fill="none" markerEnd="url(#arrowHot)" />
-          <path d="M 674 206 H 748 V 94 H 788" stroke={HOT} strokeWidth="2.4" fill="none" markerEnd="url(#arrowHot)" />
-          <path d="M 212 384 H 276" stroke={COLD} strokeWidth="2.4" fill="none" />
-          <path d="M 324 384 H 400 V 254 H 430" stroke={COLD} strokeWidth="2.4" fill="none" markerEnd="url(#arrowCold)" />
-          <path d="M 674 254 H 748 V 384 H 788" stroke={COLD} strokeWidth="2.4" fill="none" markerEnd="url(#arrowCold)" />
+          <path d="M 212 94 H 276" stroke={HOT} strokeWidth="2.4" fill="none" className="flow-line flow-hot" />
+          <path d="M 324 94 H 400 V 206 H 430" stroke={HOT} strokeWidth="2.4" fill="none" className="flow-line flow-hot" markerEnd="url(#arrowHot)" />
+          <path d="M 674 206 H 748 V 94 H 788" stroke={HOT} strokeWidth="2.4" fill="none" className="flow-line flow-hot" markerEnd="url(#arrowHot)" />
+          <path d="M 212 384 H 276" stroke={COLD} strokeWidth="2.4" fill="none" className="flow-line flow-cold" />
+          <path d="M 324 384 H 400 V 254 H 430" stroke={COLD} strokeWidth="2.4" fill="none" className="flow-line flow-cold" markerEnd="url(#arrowCold)" />
+          <path d="M 674 254 H 748 V 384 H 788" stroke={COLD} strokeWidth="2.4" fill="none" className="flow-line flow-cold" markerEnd="url(#arrowCold)" />
 
           <StreamCard
             x={24}

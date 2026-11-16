@@ -46,7 +46,7 @@ export function PageFrame({ title, intro, children, fill = true }: { title: stri
           </button>
         )}
       </header>
-      <main className="min-h-0 flex-1 overflow-auto p-4">
+      <main key={pathname} className="fade-in min-h-0 flex-1 overflow-auto p-4">
         <h1 className="text-[18px] font-semibold">{title}</h1>
         <p className="mb-3 text-[13px] text-[#444]">{intro}</p>
         <div className={`${fill ? "h-[calc(100%-4rem)] min-h-[360px]" : ""} border border-[#d0d0d0] bg-white`}>{children}</div>

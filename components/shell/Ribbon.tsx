@@ -38,7 +38,7 @@ function RibbonButton({
       title={label}
       onClick={onClick}
       className={`flex h-[68px] ${width} flex-col items-center justify-center gap-1 px-1 text-[11px] leading-[1.15] text-[#243042] hover:bg-[#e7f2fb] ${
-        active ? "bg-[#d6ebfa]" : ""
+        active ? (label === "Run Simulation" ? "bg-[#d6ebfa] ribbon-active" : "bg-[#d6ebfa]") : ""
       }`}
     >
       <span className="grid h-7 place-items-center">{children}</span>
@@ -53,7 +53,8 @@ export function Ribbon() {
   const [unitMenu, setUnitMenu] = useState(false);
 
   return (
-    <div className="flex h-[76px] shrink-0 items-center border-b border-[#d0d0d0] bg-white">
+    <div className="relative flex h-[76px] shrink-0 items-center border-b border-[#d0d0d0] bg-white">
+      {twin.status === "Running" && <div className="progress-bar" />}
       <div className="flex h-full items-center px-1">
         <div className="relative">
           <RibbonButton label="Add Unit" active={unitMenu} onClick={() => setUnitMenu((open) => !open)}>
@@ -89,7 +90,7 @@ export function Ribbon() {
       </div>
       <div className="h-12 w-px bg-[#e3e3e3]" />
       <div className="flex h-full items-center px-1">
-        <RibbonButton label="Run Simulation" onClick={fs.active ? () => void fs.run() : twin.runSimulation} width="w-[88px]">
+        <RibbonButton label="Run Simulation" active={twin.status === "Running"} onClick={fs.active ? () => void fs.run() : twin.runSimulation} width="w-[88px]">
           <Play className="h-6 w-6 fill-[#1f8a3b] text-[#1f8a3b]" />
         </RibbonButton>
         <RibbonButton label="Stop" onClick={twin.stopSimulation} width="w-[64px]">
